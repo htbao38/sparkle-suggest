@@ -9,7 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useCart } from '@/hooks/useCart';
 import { useAuth } from '@/hooks/useAuth';
 import { formatPrice, MATERIALS, CATEGORIES } from '@/lib/constants';
-import { ProductGrid } from '@/components/products/ProductGrid';
+import { RecommendedProducts } from '@/components/products/RecommendedProducts';
 import { toast } from 'sonner';
 
 export default function ProductDetail() {
@@ -237,10 +237,13 @@ export default function ProductDetail() {
           </div>
         </div>
 
-        {/* Related Products */}
+        {/* Personalized Recommendations */}
         <div className="mt-20">
-          <h2 className="font-display text-2xl font-bold mb-8">Sản phẩm liên quan</h2>
-          <ProductGrid category={product.category} limit={4} />
+          <RecommendedProducts 
+            currentProductId={product.id} 
+            title="Có thể bạn cũng thích"
+            limit={4}
+          />
         </div>
       </div>
     </Layout>
