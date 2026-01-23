@@ -3,6 +3,8 @@ import { ShoppingBag, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { formatPrice } from '@/lib/constants';
 import { useCart } from '@/hooks/useCart';
+import { useWishlist } from '@/hooks/useWishlist';
+import { cn } from '@/lib/utils';
 
 interface ProductCardProps {
   id: string;
@@ -24,7 +26,19 @@ export function ProductCard({
   isNew,
 }: ProductCardProps) {
   const { addToCart } = useCart();
+  const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
   const discount = originalPrice ? Math.round((1 - price / originalPrice) * 100) : 0;
+  const inWishlist = isInWishlist(id);
+
+  const handleWishlistToggle = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (inWishlist) {
+      removeFromWishlist(id);
+    } else {
+      addToWishlist(id);
+    }
+  };
 
   return (
     <div className="group card-elegant">
@@ -45,13 +59,17 @@ export function ProductCard({
         </div>
 
         {/* Quick actions */}
-        <div className="absolute top-3 right-3 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+        <div className="absolute top-3 right-3 flex flex-col gap-2">
           <Button
             variant="secondary"
             size="icon"
-            className="h-9 w-9 rounded-full shadow-soft"
+            onClick={handleWishlistToggle}
+            className={cn(
+              "h-9 w-9 rounded-full shadow-soft transition-all",
+              inWishlist ? "bg-destructive text-destructive-foreground hover:bg-destructive/90" : ""
+            )}
           >
-            <Heart className="h-4 w-4" />
+            <Heart className={cn("h-4 w-4", inWishlist && "fill-current")} />
           </Button>
         </div>
 
