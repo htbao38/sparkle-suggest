@@ -81,7 +81,9 @@ export default function Cart() {
               <span>Tổng cộng:</span>
               <span className="text-primary">{formatPrice(totalPrice)}</span>
             </div>
-            <Button className="w-full btn-gold">Thanh toán</Button>
+            <Link to="/thanh-toan">
+              <Button className="w-full btn-gold">Thanh toán</Button>
+            </Link>
           </div>
         </div>
       </div>
