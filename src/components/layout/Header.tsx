@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/hooks/useAuth';
 import { useCart } from '@/hooks/useCart';
+import { useWishlist } from '@/hooks/useWishlist';
 import { CATEGORIES } from '@/lib/constants';
 
 export function Header() {
@@ -19,6 +20,7 @@ export function Header() {
   const [searchQuery, setSearchQuery] = useState('');
   const { user, isAdmin, signOut } = useAuth();
   const { totalItems } = useCart();
+  const { totalItems: wishlistCount } = useWishlist();
   const navigate = useNavigate();
 
   const handleSearch = (e: React.FormEvent) => {
@@ -26,7 +28,13 @@ export function Header() {
     if (searchQuery.trim()) {
       navigate(`/san-pham?q=${encodeURIComponent(searchQuery)}`);
       setSearchQuery('');
+      setIsMenuOpen(false);
     }
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+    window.location.href = '/';
   };
 
   return (
@@ -84,9 +92,16 @@ export function Header() {
             </form>
 
             {/* Wishlist */}
-            <Button variant="ghost" size="icon" className="hidden md:flex">
-              <Heart className="h-5 w-5" />
-            </Button>
+            <Link to="/tai-khoan?tab=wishlist">
+              <Button variant="ghost" size="icon" className="hidden md:flex relative">
+                <Heart className="h-5 w-5" />
+                {wishlistCount > 0 && (
+                  <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-destructive text-destructive-foreground text-xs flex items-center justify-center">
+                    {wishlistCount}
+                  </span>
+                )}
+              </Button>
+            </Link>
 
             {/* Cart */}
             <Link to="/gio-hang">
@@ -114,7 +129,10 @@ export function Header() {
                       <Link to="/tai-khoan">Tài khoản của tôi</Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
-                      <Link to="/don-hang">Đơn hàng</Link>
+                      <Link to="/tai-khoan?tab=wishlist">Yêu thích</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/tai-khoan?tab=orders">Đơn hàng</Link>
                     </DropdownMenuItem>
                     {isAdmin && (
                       <>
@@ -127,7 +145,7 @@ export function Header() {
                       </>
                     )}
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={signOut}>
+                    <DropdownMenuItem onClick={handleSignOut}>
                       Đăng xuất
                     </DropdownMenuItem>
                   </>
