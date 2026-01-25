@@ -1,9 +1,7 @@
 import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
-
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
 interface WishlistProduct {
   id: string;
@@ -35,58 +33,54 @@ interface WishlistContextType {
 
 const WishlistContext = createContext<WishlistContextType | undefined>(undefined);
 
-async function fetchWithAuth(url: string, options: RequestInit = {}, accessToken?: string) {
-  const headers: Record<string, string> = {
-    'apikey': SUPABASE_KEY,
-    'Content-Type': 'application/json',
-  };
-  
-  if (accessToken) {
-    headers['Authorization'] = `Bearer ${accessToken}`;
-  }
-  
-  const response = await fetch(url, {
-    ...options,
-    headers: {
-      ...headers,
-      ...(options.headers || {}),
-    },
-  });
-  
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || 'Request failed');
-  }
-  
-  return response.json();
-}
-
 export function WishlistProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<WishlistItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const { user, session } = useAuth();
+  const { user } = useAuth();
 
   const fetchWishlist = async () => {
-    if (!user || !session?.access_token) {
+    if (!user) {
       setItems([]);
       setLoading(false);
       return;
     }
 
     try {
-      const url = `${SUPABASE_URL}/rest/v1/wishlist_items?user_id=eq.${user.id}&select=id,product_id,user_id,created_at,product:products(id,name,slug,price,original_price,images,category,material)&order=created_at.desc`;
-      
-      const data = await fetchWithAuth(url, {}, session.access_token);
-      
+      const { data, error } = await supabase
+        .from('wishlist_items')
+        .select(`
+          id,
+          product_id,
+          user_id,
+          created_at,
+          products:product_id (
+            id,
+            name,
+            slug,
+            price,
+            original_price,
+            images,
+            category,
+            material
+          )
+        `)
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching wishlist:', error);
+        return;
+      }
+
       // Transform data to match interface
       const transformedData: WishlistItem[] = (data || []).map((item: any) => ({
         id: item.id,
         product_id: item.product_id,
         user_id: item.user_id,
         created_at: item.created_at,
-        product: Array.isArray(item.product) ? item.product[0] : item.product,
+        product: item.products,
       }));
-      
+
       setItems(transformedData);
     } catch (error) {
       console.error('Error fetching wishlist:', error);
@@ -97,53 +91,49 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     fetchWishlist();
-  }, [user, session]);
+  }, [user]);
 
   const addToWishlist = async (productId: string) => {
-    if (!user || !session?.access_token) {
+    if (!user) {
       toast.error('Vui lòng đăng nhập để thêm vào yêu thích');
       return;
     }
 
     try {
-      const url = `${SUPABASE_URL}/rest/v1/wishlist_items`;
-      
-      await fetchWithAuth(url, {
-        method: 'POST',
-        body: JSON.stringify({
+      const { error } = await supabase
+        .from('wishlist_items')
+        .insert({
           user_id: user.id,
           product_id: productId,
-        }),
-        headers: {
-          'Prefer': 'return=minimal',
-        },
-      }, session.access_token);
+        });
+
+      if (error) {
+        if (error.code === '23505') {
+          toast.info('Sản phẩm đã có trong danh sách yêu thích');
+          return;
+        }
+        throw error;
+      }
 
       await fetchWishlist();
       toast.success('Đã thêm vào danh sách yêu thích');
     } catch (error: any) {
-      if (error.message?.includes('duplicate') || error.message?.includes('23505')) {
-        toast.info('Sản phẩm đã có trong danh sách yêu thích');
-        return;
-      }
       console.error('Error adding to wishlist:', error);
       toast.error('Không thể thêm vào yêu thích');
     }
   };
 
   const removeFromWishlist = async (productId: string) => {
-    if (!user || !session?.access_token) return;
+    if (!user) return;
 
     try {
-      const url = `${SUPABASE_URL}/rest/v1/wishlist_items?user_id=eq.${user.id}&product_id=eq.${productId}`;
-      
-      await fetch(url, {
-        method: 'DELETE',
-        headers: {
-          'apikey': SUPABASE_KEY,
-          'Authorization': `Bearer ${session.access_token}`,
-        },
-      });
+      const { error } = await supabase
+        .from('wishlist_items')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('product_id', productId);
+
+      if (error) throw error;
 
       setItems(items.filter(item => item.product_id !== productId));
       toast.success('Đã xóa khỏi danh sách yêu thích');
