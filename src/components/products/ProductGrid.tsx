@@ -66,7 +66,7 @@ export function ProductGrid({ category, searchQuery, featured, limit }: ProductG
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
-      {products.map((product) => (
+      {products.map((product, index) => (
         <ProductCard
           key={product.id}
           id={product.id}
@@ -76,6 +76,7 @@ export function ProductGrid({ category, searchQuery, featured, limit }: ProductG
           originalPrice={product.original_price ? Number(product.original_price) : undefined}
           images={product.images || []}
           isNew={new Date(product.created_at).getTime() > Date.now() - 7 * 24 * 60 * 60 * 1000}
+          priority={index < 4}
         />
       ))}
     </div>

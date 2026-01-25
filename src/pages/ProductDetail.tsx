@@ -6,16 +6,22 @@ import { supabase } from '@/integrations/supabase/client';
 import { Layout } from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { OptimizedImage } from '@/components/ui/optimized-image';
 import { useCart } from '@/hooks/useCart';
 import { useAuth } from '@/hooks/useAuth';
+import { useWishlist } from '@/hooks/useWishlist';
+import { useViewHistory } from '@/hooks/useViewHistory';
 import { formatPrice, MATERIALS, CATEGORIES } from '@/lib/constants';
 import { RecommendedProducts } from '@/components/products/RecommendedProducts';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
 export default function ProductDetail() {
   const { slug } = useParams<{ slug: string }>();
   const { user } = useAuth();
   const { addToCart } = useCart();
+  const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
+  const { trackView } = useViewHistory();
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
 
@@ -37,13 +43,9 @@ export default function ProductDetail() {
   // Track product view behavior
   useEffect(() => {
     if (product && user) {
-      supabase.from('user_behaviors').insert({
-        user_id: user.id,
-        product_id: product.id,
-        behavior_type: 'view',
-      }).then(() => {});
+      trackView(product.id);
     }
-  }, [product, user]);
+  }, [product?.id, user?.id]);
 
   const handleAddToCart = async () => {
     if (!product) return;
@@ -104,14 +106,16 @@ export default function ProductDetail() {
         <div className="grid lg:grid-cols-2 gap-12">
           {/* Image Gallery */}
           <div className="space-y-4">
-            <div className="relative aspect-square overflow-hidden rounded-lg bg-secondary/30">
-              <img
+            <div className="relative overflow-hidden rounded-lg bg-secondary/30">
+              <OptimizedImage
                 src={images[selectedImage]}
                 alt={product.name}
-                className="w-full h-full object-cover"
+                aspectRatio="square"
+                priority
+                wrapperClassName="rounded-lg"
               />
               {discount > 0 && (
-                <span className="absolute top-4 left-4 badge-sale text-base px-3 py-1">
+                <span className="absolute top-4 left-4 badge-sale text-base px-3 py-1 z-10">
                   -{discount}%
                 </span>
               )}
@@ -120,13 +124,13 @@ export default function ProductDetail() {
                 <>
                   <button
                     onClick={() => setSelectedImage(i => i > 0 ? i - 1 : images.length - 1)}
-                    className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-2 shadow-md"
+                    className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-2 shadow-md z-10"
                   >
                     <ChevronLeft className="h-5 w-5" />
                   </button>
                   <button
                     onClick={() => setSelectedImage(i => i < images.length - 1 ? i + 1 : 0)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-2 shadow-md"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-2 shadow-md z-10"
                   >
                     <ChevronRight className="h-5 w-5" />
                   </button>
@@ -144,7 +148,7 @@ export default function ProductDetail() {
                       i === selectedImage ? 'border-primary' : 'border-transparent'
                     }`}
                   >
-                    <img src={img} alt="" className="w-full h-full object-cover" />
+                    <OptimizedImage src={img} alt="" aspectRatio="square" priority />
                   </button>
                 ))}
               </div>
@@ -218,8 +222,22 @@ export default function ProductDetail() {
                 Thêm vào giỏ hàng
               </Button>
               
-              <Button variant="outline" size="icon" className="h-12 w-12">
-                <Heart className="h-5 w-5" />
+              <Button 
+                variant="outline" 
+                size="icon" 
+                className={cn(
+                  "h-12 w-12",
+                  isInWishlist(product.id) && "bg-destructive text-destructive-foreground hover:bg-destructive/90 border-destructive"
+                )}
+                onClick={() => {
+                  if (isInWishlist(product.id)) {
+                    removeFromWishlist(product.id);
+                  } else {
+                    addToWishlist(product.id);
+                  }
+                }}
+              >
+                <Heart className={cn("h-5 w-5", isInWishlist(product.id) && "fill-current")} />
               </Button>
             </div>
 
