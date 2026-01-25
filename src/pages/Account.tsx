@@ -4,6 +4,7 @@ import { Navigate, Link, useSearchParams } from 'react-router-dom';
 import { Layout } from '@/components/layout/Layout';
 import { useAuth } from '@/hooks/useAuth';
 import { useWishlist } from '@/hooks/useWishlist';
+import { useViewHistory } from '@/hooks/useViewHistory';
 import { supabase } from '@/integrations/supabase/client';
 import { formatPrice, ORDER_STATUS } from '@/lib/constants';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -11,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { OptimizedImage } from '@/components/ui/optimized-image';
 import { 
   User, Package, Heart, Eye, Settings, LogOut, Trash2
 } from 'lucide-react';
@@ -21,6 +23,7 @@ import { toast } from 'sonner';
 export default function Account() {
   const { user, loading: authLoading, signOut } = useAuth();
   const { items: wishlistItems, removeFromWishlist, loading: wishlistLoading } = useWishlist();
+  const { items: viewHistory, isLoading: historyLoading, clearHistory } = useViewHistory(20);
   const [searchParams] = useSearchParams();
   const tabFromUrl = searchParams.get('tab');
   const [activeTab, setActiveTab] = useState(tabFromUrl || 'profile');
@@ -76,36 +79,6 @@ export default function Account() {
       
       if (error) throw error;
       return data;
-    },
-    enabled: !!user,
-  });
-
-  // Fetch view history
-  const { data: viewHistory, isLoading: historyLoading } = useQuery({
-    queryKey: ['view-history', user?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('user_behaviors')
-        .select(`
-          *,
-          product:products (
-            id, name, slug, price, images
-          )
-        `)
-        .eq('user_id', user!.id)
-        .eq('behavior_type', 'view')
-        .order('created_at', { ascending: false })
-        .limit(20);
-      
-      if (error) throw error;
-      
-      // Remove duplicates, keep most recent
-      const seen = new Set();
-      return data?.filter(item => {
-        if (seen.has(item.product_id)) return false;
-        seen.add(item.product_id);
-        return true;
-      }) || [];
     },
     enabled: !!user,
   });
@@ -309,10 +282,11 @@ export default function Account() {
                       {wishlistItems.map((item) => (
                         <div key={item.id} className="flex gap-4 border rounded-lg p-4">
                           <Link to={`/san-pham/${item.product?.slug}`} className="flex-shrink-0">
-                            <img
+                            <OptimizedImage
                               src={item.product?.images?.[0] || '/placeholder.svg'}
-                              alt={item.product?.name}
-                              className="w-20 h-20 object-cover rounded-md"
+                              alt={item.product?.name || 'Product'}
+                              aspectRatio="square"
+                              wrapperClassName="w-20 h-20 rounded-md"
                             />
                           </Link>
                           <div className="flex-1 min-w-0">
@@ -350,9 +324,24 @@ export default function Account() {
             {/* View History Tab */}
             <TabsContent value="history">
               <Card>
-                <CardHeader>
-                  <CardTitle>Sản phẩm đã xem</CardTitle>
-                  <CardDescription>Các sản phẩm bạn đã xem gần đây</CardDescription>
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <div>
+                    <CardTitle>Sản phẩm đã xem</CardTitle>
+                    <CardDescription>Các sản phẩm bạn đã xem gần đây</CardDescription>
+                  </div>
+                  {viewHistory && viewHistory.length > 0 && (
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => {
+                        clearHistory();
+                        toast.success('Đã xóa lịch sử xem');
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Xóa lịch sử
+                    </Button>
+                  )}
                 </CardHeader>
                 <CardContent>
                   {historyLoading ? (
@@ -367,13 +356,13 @@ export default function Account() {
                           to={`/san-pham/${item.product?.slug}`}
                           className="group"
                         >
-                          <div className="aspect-square overflow-hidden rounded-lg bg-muted">
-                            <img
-                              src={item.product?.images?.[0] || '/placeholder.svg'}
-                              alt={item.product?.name}
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                            />
-                          </div>
+                          <OptimizedImage
+                            src={item.product?.images?.[0] || '/placeholder.svg'}
+                            alt={item.product?.name || 'Product'}
+                            aspectRatio="square"
+                            wrapperClassName="rounded-lg overflow-hidden"
+                            className="group-hover:scale-105 transition-transform duration-300"
+                          />
                           <h4 className="mt-2 text-sm font-medium truncate group-hover:text-primary">
                             {item.product?.name}
                           </h4>

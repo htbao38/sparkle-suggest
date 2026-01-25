@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { ShoppingBag, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { OptimizedImage } from '@/components/ui/optimized-image';
 import { formatPrice } from '@/lib/constants';
 import { useCart } from '@/hooks/useCart';
 import { useWishlist } from '@/hooks/useWishlist';
@@ -14,6 +15,7 @@ interface ProductCardProps {
   originalPrice?: number;
   images: string[];
   isNew?: boolean;
+  priority?: boolean;
 }
 
 export function ProductCard({
@@ -24,6 +26,7 @@ export function ProductCard({
   originalPrice,
   images,
   isNew,
+  priority = false,
 }: ProductCardProps) {
   const { addToCart } = useCart();
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
@@ -40,26 +43,35 @@ export function ProductCard({
     }
   };
 
+  const handleAddToCart = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    addToCart(id);
+  };
+
   return (
     <div className="group card-elegant">
       {/* Image container */}
-      <div className="relative img-zoom aspect-square bg-secondary/30">
+      <div className="relative img-zoom">
         <Link to={`/san-pham/${slug}`}>
-          <img
+          <OptimizedImage
             src={images[0] || '/placeholder.svg'}
             alt={name}
-            className="w-full h-full object-cover"
+            aspectRatio="square"
+            priority={priority}
+            className="group-hover:scale-105 transition-transform duration-500"
+            wrapperClassName="bg-secondary/30 rounded-t-lg overflow-hidden"
           />
         </Link>
         
         {/* Badges */}
-        <div className="absolute top-3 left-3 flex flex-col gap-2">
+        <div className="absolute top-3 left-3 flex flex-col gap-2 z-10">
           {isNew && <span className="badge-new">Mới</span>}
           {discount > 0 && <span className="badge-sale">-{discount}%</span>}
         </div>
 
         {/* Quick actions */}
-        <div className="absolute top-3 right-3 flex flex-col gap-2">
+        <div className="absolute top-3 right-3 flex flex-col gap-2 z-10">
           <Button
             variant="secondary"
             size="icon"
@@ -74,9 +86,9 @@ export function ProductCard({
         </div>
 
         {/* Add to cart overlay */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+        <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10">
           <Button
-            onClick={() => addToCart(id)}
+            onClick={handleAddToCart}
             className="w-full btn-gold"
           >
             <ShoppingBag className="h-4 w-4 mr-2" />
