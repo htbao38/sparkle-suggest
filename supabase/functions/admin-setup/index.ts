@@ -6,6 +6,18 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Helper function to verify admin role
+async function verifyAdminRole(supabaseAdmin: any, userId: string): Promise<boolean> {
+  const { data, error } = await supabaseAdmin
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", userId)
+    .eq("role", "admin")
+    .single();
+  
+  return !error && data?.role === "admin";
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -14,17 +26,78 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     
-    const supabase = createClient(supabaseUrl, serviceRoleKey, {
+    // Create admin client for privileged operations
+    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
       auth: { autoRefreshToken: false, persistSession: false }
     });
 
     const { action, email, password } = await req.json();
 
+    // Check authorization header for authenticated requests
+    const authHeader = req.headers.get("Authorization");
+    
+    if (action === "create_admin" || action === "seed_products") {
+      // These actions require admin authentication
+      if (!authHeader?.startsWith("Bearer ")) {
+        return new Response(JSON.stringify({ error: "Unauthorized: Missing or invalid authorization header" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      }
+
+      // Verify the JWT token and get user claims
+      const token = authHeader.replace("Bearer ", "");
+      const supabaseAuth = createClient(supabaseUrl, anonKey, {
+        global: { headers: { Authorization: authHeader } }
+      });
+      
+      const { data: claimsData, error: claimsError } = await supabaseAuth.auth.getClaims(token);
+      
+      if (claimsError || !claimsData?.claims?.sub) {
+        console.error("Auth error:", claimsError);
+        return new Response(JSON.stringify({ error: "Unauthorized: Invalid token" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      }
+
+      const userId = claimsData.claims.sub;
+      
+      // Verify the user has admin role
+      const isAdmin = await verifyAdminRole(supabaseAdmin, userId);
+      
+      if (!isAdmin) {
+        console.log(`User ${userId} attempted admin action without admin role`);
+        return new Response(JSON.stringify({ error: "Forbidden: Admin role required" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      }
+
+      console.log(`Admin action '${action}' authorized for user ${userId}`);
+    }
+
     if (action === "create_admin") {
+      // Validate input
+      if (!email || typeof email !== "string" || !email.includes("@")) {
+        return new Response(JSON.stringify({ error: "Invalid email format" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      }
+
+      if (password && (typeof password !== "string" || password.length < 8)) {
+        return new Response(JSON.stringify({ error: "Password must be at least 8 characters" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      }
+
       // Create admin user
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-        email: email || "admin@luxejewelry.vn",
+      const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+        email: email,
         password: password || "Admin123!",
         email_confirm: true,
         user_metadata: { full_name: "Admin" }
@@ -33,7 +106,7 @@ serve(async (req) => {
       if (authError) {
         // If user exists, just make them admin
         if (authError.message.includes("already been registered")) {
-          await supabase.rpc("make_user_admin", { user_email: email || "admin@luxejewelry.vn" });
+          await supabaseAdmin.rpc("make_user_admin", { user_email: email });
           return new Response(JSON.stringify({ success: true, message: "User promoted to admin" }), {
             headers: { ...corsHeaders, "Content-Type": "application/json" }
           });
@@ -43,7 +116,7 @@ serve(async (req) => {
 
       // Make the user admin
       if (authData.user) {
-        const { error: roleError } = await supabase
+        const { error: roleError } = await supabaseAdmin
           .from("user_roles")
           .upsert({ user_id: authData.user.id, role: "admin" }, { onConflict: "user_id,role" });
         
@@ -53,7 +126,7 @@ serve(async (req) => {
       return new Response(JSON.stringify({ 
         success: true, 
         message: "Admin created successfully",
-        email: email || "admin@luxejewelry.vn"
+        email: email
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" }
       });
@@ -231,7 +304,7 @@ serve(async (req) => {
         }
       ];
 
-      const { data, error } = await supabase.from("products").insert(products).select();
+      const { data, error } = await supabaseAdmin.from("products").insert(products).select();
 
       if (error) throw error;
 
