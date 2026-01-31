@@ -4,7 +4,9 @@ import { Layout } from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { PasswordStrength } from '@/components/ui/password-strength';
 import { useAuth } from '@/hooks/useAuth';
+import { registerSchema } from '@/lib/validations';
 import { toast } from 'sonner';
 
 export default function Register() {
@@ -12,19 +14,41 @@ export default function Register() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const { signUp } = useAuth();
   const navigate = useNavigate();
 
+  const validateForm = () => {
+    const result = registerSchema.safeParse({ fullName, email, password });
+    if (!result.success) {
+      const fieldErrors: Record<string, string> = {};
+      result.error.errors.forEach((err) => {
+        if (err.path[0]) {
+          fieldErrors[err.path[0] as string] = err.message;
+        }
+      });
+      setErrors(fieldErrors);
+      return false;
+    }
+    setErrors({});
+    return true;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!validateForm()) {
+      return;
+    }
+    
     setLoading(true);
     
-    const { error } = await signUp(email, password, fullName);
+    const { error } = await signUp(email.trim(), password, fullName.trim());
     
     if (error) {
       toast.error(error.message);
     } else {
-      toast.success('Đăng ký thành công!');
+      toast.success('Đăng ký thành công! Vui lòng kiểm tra email để xác nhận tài khoản.');
       navigate('/');
     }
     setLoading(false);
@@ -46,8 +70,12 @@ export default function Register() {
                 id="fullName"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
+                maxLength={100}
                 required
               />
+              {errors.fullName && (
+                <p className="text-sm text-destructive">{errors.fullName}</p>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
@@ -56,8 +84,12 @@ export default function Register() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                maxLength={255}
                 required
               />
+              {errors.email && (
+                <p className="text-sm text-destructive">{errors.email}</p>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Mật khẩu</Label>
@@ -66,9 +98,13 @@ export default function Register() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                minLength={6}
+                minLength={8}
                 required
               />
+              {errors.password && (
+                <p className="text-sm text-destructive">{errors.password}</p>
+              )}
+              <PasswordStrength password={password} />
             </div>
             <Button type="submit" className="w-full btn-gold" disabled={loading}>
               {loading ? 'Đang đăng ký...' : 'Đăng ký'}

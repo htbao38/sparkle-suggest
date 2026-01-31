@@ -9,6 +9,7 @@ import { useCart } from '@/hooks/useCart';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { formatPrice } from '@/lib/constants';
+import { checkoutSchema } from '@/lib/validations';
 import { toast } from 'sonner';
 import { CreditCard, Truck, CheckCircle } from 'lucide-react';
 
@@ -18,6 +19,7 @@ export default function Checkout() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState(1);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   
   const [formData, setFormData] = useState({
     fullName: '',
@@ -29,6 +31,26 @@ export default function Checkout() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+    // Clear error when user types
+    if (errors[e.target.name]) {
+      setErrors({ ...errors, [e.target.name]: '' });
+    }
+  };
+
+  const validateForm = () => {
+    const result = checkoutSchema.safeParse(formData);
+    if (!result.success) {
+      const fieldErrors: Record<string, string> = {};
+      result.error.errors.forEach((err) => {
+        if (err.path[0]) {
+          fieldErrors[err.path[0] as string] = err.message;
+        }
+      });
+      setErrors(fieldErrors);
+      return false;
+    }
+    setErrors({});
+    return true;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -38,20 +60,26 @@ export default function Checkout() {
       return;
     }
 
+    // Validate form before submission
+    if (!validateForm()) {
+      toast.error('Vui lòng kiểm tra lại thông tin');
+      return;
+    }
+
     setLoading(true);
 
     try {
-      // Create order
+      // Create order with trimmed and validated data
       const { data: order, error: orderError } = await supabase
         .from('orders')
         .insert([{
           user_id: user.id,
-          customer_name: formData.fullName,
-          customer_phone: formData.phone,
-          customer_email: formData.email || user.email,
-          shipping_address: formData.address,
+          customer_name: formData.fullName.trim(),
+          customer_phone: formData.phone.trim(),
+          customer_email: formData.email.trim() || user.email,
+          shipping_address: formData.address.trim(),
           total_amount: totalPrice,
-          notes: formData.notes,
+          notes: formData.notes.trim() || null,
           order_number: 'TEMP' + Date.now(), // Will be replaced by trigger
         }])
         .select()
@@ -157,26 +185,31 @@ export default function Checkout() {
                     <div className="grid md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="fullName">Họ và tên *</Label>
-                        <Input name="fullName" value={formData.fullName} onChange={handleChange} required />
+                        <Input name="fullName" value={formData.fullName} onChange={handleChange} maxLength={200} required />
+                        {errors.fullName && <p className="text-sm text-destructive">{errors.fullName}</p>}
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="phone">Số điện thoại *</Label>
-                        <Input name="phone" value={formData.phone} onChange={handleChange} required />
+                        <Input name="phone" value={formData.phone} onChange={handleChange} maxLength={20} required />
+                        {errors.phone && <p className="text-sm text-destructive">{errors.phone}</p>}
                       </div>
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="email">Email</Label>
-                      <Input name="email" type="email" value={formData.email} onChange={handleChange} />
+                      <Input name="email" type="email" value={formData.email} onChange={handleChange} maxLength={255} />
+                      {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="address">Địa chỉ giao hàng *</Label>
-                      <Textarea name="address" value={formData.address} onChange={handleChange} required rows={3} />
+                      <Textarea name="address" value={formData.address} onChange={handleChange} maxLength={500} required rows={3} />
+                      {errors.address && <p className="text-sm text-destructive">{errors.address}</p>}
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="notes">Ghi chú đơn hàng</Label>
-                      <Textarea name="notes" value={formData.notes} onChange={handleChange} rows={2} placeholder="Ví dụ: Giao hàng giờ hành chính" />
+                      <Textarea name="notes" value={formData.notes} onChange={handleChange} maxLength={1000} rows={2} placeholder="Ví dụ: Giao hàng giờ hành chính" />
+                      {errors.notes && <p className="text-sm text-destructive">{errors.notes}</p>}
                     </div>
-                    <Button type="button" onClick={() => setStep(2)} className="btn-gold w-full md:w-auto">
+                    <Button type="button" onClick={() => { if (validateForm()) setStep(2); }} className="btn-gold w-full md:w-auto">
                       Tiếp tục thanh toán
                     </Button>
                   </>
