@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { ProductCard } from './ProductCard';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
 
 interface ProductGridProps {
   category?: string;
@@ -11,7 +12,14 @@ interface ProductGridProps {
 }
 
 export function ProductGrid({ category, searchQuery, featured, limit }: ProductGridProps) {
-  const { data: products, isLoading } = useQuery({
+  const {
+    data: products,
+    isLoading,
+    isError,
+    error,
+    refetch,
+    isFetching,
+  } = useQuery({
     queryKey: ['products', category, searchQuery, featured, limit],
     queryFn: async () => {
       let query = supabase
@@ -41,6 +49,30 @@ export function ProductGrid({ category, searchQuery, featured, limit }: ProductG
       return data;
     },
   });
+
+  if (isError) {
+    const message =
+      (error as any)?.message ||
+      (typeof error === 'string' ? error : 'Không thể tải sản phẩm.');
+
+    // Useful for debugging production-only issues (published URL vs preview)
+    console.error('[ProductGrid] Failed to load products', {
+      category,
+      searchQuery,
+      featured,
+      limit,
+      error,
+    });
+
+    return (
+      <div className="text-center py-12 space-y-4">
+        <p className="text-muted-foreground">{message}</p>
+        <Button variant="outline" onClick={() => refetch()} disabled={isFetching}>
+          {isFetching ? 'Đang tải...' : 'Thử lại'}
+        </Button>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
