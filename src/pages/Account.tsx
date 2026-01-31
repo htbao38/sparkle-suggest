@@ -7,6 +7,7 @@ import { useWishlist } from '@/hooks/useWishlist';
 import { useViewHistory } from '@/hooks/useViewHistory';
 import { supabase } from '@/integrations/supabase/client';
 import { formatPrice, ORDER_STATUS } from '@/lib/constants';
+import { profileSchema } from '@/lib/validations';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,6 +29,7 @@ export default function Account() {
   const tabFromUrl = searchParams.get('tab');
   const [activeTab, setActiveTab] = useState(tabFromUrl || 'profile');
   const [isUpdating, setIsUpdating] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [profileForm, setProfileForm] = useState({
     full_name: '',
     phone: '',
@@ -83,18 +85,39 @@ export default function Account() {
     enabled: !!user,
   });
 
+  const validateProfileForm = () => {
+    const result = profileSchema.safeParse(profileForm);
+    if (!result.success) {
+      const fieldErrors: Record<string, string> = {};
+      result.error.errors.forEach((err) => {
+        if (err.path[0]) {
+          fieldErrors[err.path[0] as string] = err.message;
+        }
+      });
+      setErrors(fieldErrors);
+      return false;
+    }
+    setErrors({});
+    return true;
+  };
+
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
+
+    if (!validateProfileForm()) {
+      toast.error('Vui lòng kiểm tra lại thông tin');
+      return;
+    }
 
     setIsUpdating(true);
     try {
       const { error } = await supabase
         .from('profiles')
         .update({
-          full_name: profileForm.full_name,
-          phone: profileForm.phone,
-          address: profileForm.address,
+          full_name: profileForm.full_name.trim(),
+          phone: profileForm.phone.trim(),
+          address: profileForm.address.trim(),
           updated_at: new Date().toISOString(),
         })
         .eq('user_id', user.id);
@@ -178,27 +201,42 @@ export default function Account() {
                       <Input
                         id="full_name"
                         value={profileForm.full_name}
-                        onChange={(e) => setProfileForm({ ...profileForm, full_name: e.target.value })}
+                        onChange={(e) => {
+                          setProfileForm({ ...profileForm, full_name: e.target.value });
+                          if (errors.full_name) setErrors({ ...errors, full_name: '' });
+                        }}
+                        maxLength={200}
                         placeholder="Nhập họ và tên"
                       />
+                      {errors.full_name && <p className="text-sm text-destructive">{errors.full_name}</p>}
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="phone">Số điện thoại</Label>
                       <Input
                         id="phone"
                         value={profileForm.phone}
-                        onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
+                        onChange={(e) => {
+                          setProfileForm({ ...profileForm, phone: e.target.value });
+                          if (errors.phone) setErrors({ ...errors, phone: '' });
+                        }}
+                        maxLength={20}
                         placeholder="Nhập số điện thoại"
                       />
+                      {errors.phone && <p className="text-sm text-destructive">{errors.phone}</p>}
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="address">Địa chỉ</Label>
                       <Input
                         id="address"
                         value={profileForm.address}
-                        onChange={(e) => setProfileForm({ ...profileForm, address: e.target.value })}
+                        onChange={(e) => {
+                          setProfileForm({ ...profileForm, address: e.target.value });
+                          if (errors.address) setErrors({ ...errors, address: '' });
+                        }}
+                        maxLength={500}
                         placeholder="Nhập địa chỉ"
                       />
+                      {errors.address && <p className="text-sm text-destructive">{errors.address}</p>}
                     </div>
                     <Button type="submit" disabled={isUpdating}>
                       {isUpdating ? 'Đang cập nhật...' : 'Lưu thay đổi'}
