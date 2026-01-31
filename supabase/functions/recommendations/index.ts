@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
 // Enhanced behavior weights with recency consideration
@@ -45,6 +45,25 @@ interface Behavior {
   created_at: string;
 }
 
+/**
+ * Verify admin role for a user
+ */
+async function verifyAdminRole(supabaseAdmin: any, userId: string): Promise<boolean> {
+  const { data, error } = await supabaseAdmin
+    .from('user_roles')
+    .select('role')
+    .eq('user_id', userId)
+    .eq('role', 'admin')
+    .maybeSingle();
+
+  if (error) {
+    console.error('Error checking admin role:', error);
+    return false;
+  }
+
+  return !!data;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -53,12 +72,48 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    
+    // Service role client for data access (used after auth validation)
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
     const { action, user_id, product_id, limit = 8 } = await req.json();
 
+    // For get_recommendations: Allow authenticated users OR product-only recommendations
     if (action === 'get_recommendations') {
-      const recommendations = await getHybridRecommendations(supabase, user_id, product_id, limit);
+      // Check for authentication header
+      const authHeader = req.headers.get('Authorization');
+      let authenticatedUserId: string | null = null;
+
+      if (authHeader?.startsWith('Bearer ')) {
+        // Validate the JWT token
+        const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
+          global: { headers: { Authorization: authHeader } }
+        });
+        
+        const token = authHeader.replace('Bearer ', '');
+        const { data: claimsData, error: claimsError } = await supabaseAuth.auth.getClaims(token);
+        
+        if (!claimsError && claimsData?.claims) {
+          authenticatedUserId = claimsData.claims.sub as string;
+        }
+      }
+
+      // If user_id is provided in request, it must match the authenticated user
+      // Exception: If no user_id provided, allow product-based recommendations only
+      const effectiveUserId = user_id ? (
+        authenticatedUserId === user_id ? user_id : null
+      ) : null;
+
+      // If user_id was requested but doesn't match authenticated user, reject
+      if (user_id && !effectiveUserId) {
+        return new Response(
+          JSON.stringify({ error: 'Unauthorized: Cannot request recommendations for other users' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const recommendations = await getHybridRecommendations(supabaseAdmin, effectiveUserId, product_id, limit);
       
       return new Response(
         JSON.stringify({ success: true, recommendations }),
@@ -66,8 +121,44 @@ serve(async (req) => {
       );
     }
 
+    // For update_recommendations: Require admin authentication
     if (action === 'update_recommendations') {
-      await updateRecommendationScores(supabase);
+      const authHeader = req.headers.get('Authorization');
+      
+      if (!authHeader?.startsWith('Bearer ')) {
+        return new Response(
+          JSON.stringify({ error: 'Unauthorized: Authentication required' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Validate the JWT token
+      const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
+        global: { headers: { Authorization: authHeader } }
+      });
+      
+      const token = authHeader.replace('Bearer ', '');
+      const { data: claimsData, error: claimsError } = await supabaseAuth.auth.getClaims(token);
+      
+      if (claimsError || !claimsData?.claims) {
+        return new Response(
+          JSON.stringify({ error: 'Unauthorized: Invalid token' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const userId = claimsData.claims.sub as string;
+
+      // Verify admin role
+      const isAdmin = await verifyAdminRole(supabaseAdmin, userId);
+      if (!isAdmin) {
+        return new Response(
+          JSON.stringify({ error: 'Forbidden: Admin access required' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      await updateRecommendationScores(supabaseAdmin);
       
       return new Response(
         JSON.stringify({ success: true, message: 'Recommendations updated' }),
