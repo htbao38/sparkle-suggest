@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import { cn } from '@/lib/utils';
 
 interface OptimizedImageProps {
@@ -17,33 +17,10 @@ export function OptimizedImage({
   className,
   wrapperClassName,
   aspectRatio = 'square',
-  priority = false,
   onLoad,
 }: OptimizedImageProps) {
   const [isLoaded, setIsLoaded] = useState(false);
-  const [isInView, setIsInView] = useState(priority);
   const [hasError, setHasError] = useState(false);
-  const imgRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (priority || !imgRef.current) return;
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setIsInView(true);
-          observer.disconnect();
-        }
-      },
-      {
-        rootMargin: '100px',
-        threshold: 0.01,
-      }
-    );
-
-    observer.observe(imgRef.current);
-    return () => observer.disconnect();
-  }, [priority]);
 
   const handleLoad = () => {
     setIsLoaded(true);
@@ -66,34 +43,30 @@ export function OptimizedImage({
 
   return (
     <div
-      ref={imgRef}
       className={cn(
         'relative overflow-hidden bg-muted',
         aspectRatioClass,
         wrapperClassName
       )}
     >
-      {/* Skeleton placeholder */}
       {!isLoaded && (
         <div className="absolute inset-0 bg-gradient-to-r from-muted via-muted/50 to-muted animate-pulse" />
       )}
 
-      {/* Image */}
-      {isInView && (
-        <img
-          src={imageSrc}
-          alt={alt}
-          loading={priority ? 'eager' : 'lazy'}
-          decoding="async"
-          onLoad={handleLoad}
-          onError={handleError}
-          className={cn(
-            'w-full h-full object-cover transition-opacity duration-300',
-            isLoaded ? 'opacity-100' : 'opacity-0',
-            className
-          )}
-        />
-      )}
+      <img
+        src={imageSrc}
+        alt={alt}
+        loading="eager"
+        decoding="sync"
+        fetchPriority="high"
+        onLoad={handleLoad}
+        onError={handleError}
+        className={cn(
+          'w-full h-full object-cover transition-opacity duration-300',
+          isLoaded ? 'opacity-100' : 'opacity-0',
+          className
+        )}
+      />
     </div>
   );
 }
