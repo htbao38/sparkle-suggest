@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 
 interface OptimizedImageProps {
@@ -12,16 +12,18 @@ interface OptimizedImageProps {
 }
 
 /**
- * Upgrade Unsplash image URLs to high quality (w=1200, q=90)
+ * Build responsive Unsplash URL based on container width.
+ * Requests 2x the display size for retina, capped at 1200.
  */
-function getHighQualityUrl(src: string): string {
+function getOptimizedUrl(src: string, containerWidth: number): string {
   if (!src) return src;
-  // Replace low-res Unsplash params with high quality
   if (src.includes('images.unsplash.com')) {
     const url = new URL(src);
-    url.searchParams.set('w', '1200');
-    url.searchParams.set('q', '90');
+    const w = Math.min(Math.max(containerWidth * 2, 400), 1200);
+    url.searchParams.set('w', String(w));
+    url.searchParams.set('q', '80');
     url.searchParams.set('auto', 'format');
+    url.searchParams.set('fit', 'crop');
     return url.toString();
   }
   return src;
@@ -38,6 +40,14 @@ export function OptimizedImage({
 }: OptimizedImageProps) {
   const [isLoaded, setIsLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState(400);
+
+  useEffect(() => {
+    if (wrapperRef.current) {
+      setContainerWidth(wrapperRef.current.offsetWidth || 400);
+    }
+  }, []);
 
   const handleLoad = () => {
     setIsLoaded(true);
@@ -57,10 +67,11 @@ export function OptimizedImage({
   }[aspectRatio];
 
   const rawSrc = hasError ? '/placeholder.svg' : (src || '/placeholder.svg');
-  const imageSrc = getHighQualityUrl(rawSrc);
+  const imageSrc = getOptimizedUrl(rawSrc, containerWidth);
 
   return (
     <div
+      ref={wrapperRef}
       className={cn(
         'relative overflow-hidden bg-muted',
         aspectRatioClass,
