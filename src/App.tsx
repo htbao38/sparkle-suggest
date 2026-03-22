@@ -31,6 +31,7 @@ const App = () => (
             <Toaster />
             <Sonner />
             <BrowserRouter>
+              <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>}>
               <Routes>
                 <Route path="/" element={<Index />} />
                 <Route path="/dang-nhap" element={<Login />} />
@@ -45,6 +46,7 @@ const App = () => (
                 <Route path="/admin" element={<Admin />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
+              </Suspense>
             </BrowserRouter>
           </WishlistProvider>
         </CartProvider>
