@@ -11,6 +11,9 @@ export function HeroSection() {
         <img
           src={heroImage}
           alt="Luxury Jewelry"
+          fetchPriority="high"
+          loading="eager"
+          decoding="async"
           className="w-full h-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/30 to-transparent" />
