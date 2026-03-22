@@ -11,12 +11,29 @@ interface OptimizedImageProps {
   onLoad?: () => void;
 }
 
+/**
+ * Upgrade Unsplash image URLs to high quality (w=1200, q=90)
+ */
+function getHighQualityUrl(src: string): string {
+  if (!src) return src;
+  // Replace low-res Unsplash params with high quality
+  if (src.includes('images.unsplash.com')) {
+    const url = new URL(src);
+    url.searchParams.set('w', '1200');
+    url.searchParams.set('q', '90');
+    url.searchParams.set('auto', 'format');
+    return url.toString();
+  }
+  return src;
+}
+
 export function OptimizedImage({
   src,
   alt,
   className,
   wrapperClassName,
   aspectRatio = 'square',
+  priority = false,
   onLoad,
 }: OptimizedImageProps) {
   const [isLoaded, setIsLoaded] = useState(false);
@@ -39,7 +56,8 @@ export function OptimizedImage({
     auto: '',
   }[aspectRatio];
 
-  const imageSrc = hasError ? '/placeholder.svg' : (src || '/placeholder.svg');
+  const rawSrc = hasError ? '/placeholder.svg' : (src || '/placeholder.svg');
+  const imageSrc = getHighQualityUrl(rawSrc);
 
   return (
     <div
@@ -56,9 +74,9 @@ export function OptimizedImage({
       <img
         src={imageSrc}
         alt={alt}
-        loading="eager"
-        decoding="sync"
-        fetchPriority="high"
+        loading={priority ? 'eager' : 'lazy'}
+        decoding="async"
+        fetchPriority={priority ? 'high' : 'auto'}
         onLoad={handleLoad}
         onError={handleError}
         className={cn(
