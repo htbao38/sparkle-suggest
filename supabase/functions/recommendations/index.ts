@@ -77,7 +77,8 @@ serve(async (req) => {
     // Service role client for data access (used after auth validation)
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { action, user_id, product_id, limit = 8 } = await req.json();
+    const body = await req.json();
+    const { action, user_id, product_id, limit = 8, cron_secret } = body;
 
     // For get_recommendations: Allow authenticated users OR product-only recommendations
     if (action === 'get_recommendations') {
