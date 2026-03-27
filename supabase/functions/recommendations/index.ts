@@ -70,9 +70,11 @@ serve(async (req) => {
   }
 
   try {
+    console.log('=== RECOMMENDATIONS FUNCTION v3 ===');
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    console.log('Anon key first 20:', supabaseAnonKey?.substring(0, 20));
     
     // Service role client for data access (used after auth validation)
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
