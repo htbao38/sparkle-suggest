@@ -127,6 +127,14 @@ serve(async (req) => {
     // For update_recommendations: Require admin auth OR scheduled cron call
     if (action === 'update_recommendations') {
       const authHeader = req.headers.get('Authorization');
+      const apiKeyHeader = req.headers.get('apikey');
+      console.log('Auth debug:', { 
+        hasAuth: !!authHeader, 
+        authFirst30: authHeader?.substring(0, 30),
+        hasApiKey: !!apiKeyHeader,
+        anonKeyFirst30: supabaseAnonKey?.substring(0, 30),
+        serviceKeyFirst30: supabaseServiceKey?.substring(0, 30),
+      });
       let authorized = false;
 
       if (authHeader?.startsWith('Bearer ')) {
