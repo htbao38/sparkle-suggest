@@ -150,8 +150,8 @@ serve(async (req) => {
       }
 
       // Also allow via cron_secret in body
-      const cronSecret = Deno.env.get('CRON_SECRET');
-      if (!authorized && cronSecret && (await req.clone().json()).cron_secret === cronSecret) {
+      const cronSecretEnv = Deno.env.get('CRON_SECRET');
+      if (!authorized && cronSecretEnv && cron_secret === cronSecretEnv) {
         authorized = true;
         console.log('Scheduled update triggered via cron_secret');
       }
