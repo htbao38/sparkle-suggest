@@ -130,11 +130,17 @@ serve(async (req) => {
       if (authHeader?.startsWith('Bearer ')) {
         const token = authHeader.replace('Bearer ', '');
 
-        // Check if it's the service_role key (used by cron jobs)
+        // Check if it's the service_role key
         if (token === supabaseServiceKey) {
           authorized = true;
-          console.log('Scheduled update triggered via service_role key');
-        } else {
+          console.log('Update triggered via service_role key');
+        } 
+        // Check if it's the anon key (used by pg_cron scheduled jobs)
+        else if (token === supabaseAnonKey) {
+          authorized = true;
+          console.log('Update triggered via scheduled cron job (anon key)');
+        }
+        else {
           // Validate as admin user
           const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
             global: { headers: { Authorization: authHeader } }
@@ -147,20 +153,6 @@ serve(async (req) => {
             authorized = await verifyAdminRole(supabaseAdmin, userId);
           }
         }
-      }
-
-      // Also allow via cron_secret in body
-      const cronSecretEnv = Deno.env.get('CRON_SECRET');
-      console.log('cron_secret debug:', { 
-        envLen: cronSecretEnv?.length, 
-        bodyLen: cron_secret?.length,
-        envFirst5: cronSecretEnv?.substring(0, 5),
-        bodyFirst5: cron_secret?.substring(0, 5),
-        match: cronSecretEnv === cron_secret 
-      });
-      if (!authorized && cronSecretEnv && cron_secret === cronSecretEnv) {
-        authorized = true;
-        console.log('Scheduled update triggered via cron_secret');
       }
 
       if (!authorized) {
