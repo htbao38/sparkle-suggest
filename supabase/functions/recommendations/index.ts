@@ -127,41 +127,33 @@ serve(async (req) => {
     // For update_recommendations: Require admin auth OR scheduled cron call
     if (action === 'update_recommendations') {
       const authHeader = req.headers.get('Authorization');
-      const apiKeyHeader = req.headers.get('apikey');
-      console.log('Auth debug:', { 
-        hasAuth: !!authHeader, 
-        authFirst30: authHeader?.substring(0, 30),
-        hasApiKey: !!apiKeyHeader,
-        anonKeyFirst30: supabaseAnonKey?.substring(0, 30),
-        serviceKeyFirst30: supabaseServiceKey?.substring(0, 30),
-      });
       let authorized = false;
 
       if (authHeader?.startsWith('Bearer ')) {
         const token = authHeader.replace('Bearer ', '');
 
-        // Check if it's the service_role key
-        if (token === supabaseServiceKey) {
-          authorized = true;
-          console.log('Update triggered via service_role key');
-        } 
-        // Check if it's the anon key (used by pg_cron scheduled jobs)
-        else if (token === supabaseAnonKey) {
-          authorized = true;
-          console.log('Update triggered via scheduled cron job (anon key)');
-        }
-        else {
-          // Validate as admin user
-          const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
-            global: { headers: { Authorization: authHeader } }
-          });
-          
-          const { data: claimsData, error: claimsError } = await supabaseAuth.auth.getClaims(token);
-          
-          if (!claimsError && claimsData?.claims) {
-            const userId = claimsData.claims.sub as string;
-            authorized = await verifyAdminRole(supabaseAdmin, userId);
+        // Decode JWT payload to check role (works for anon key, service_role, or user JWTs)
+        try {
+          const payloadBase64 = token.split('.')[1];
+          if (payloadBase64) {
+            const payload = JSON.parse(atob(payloadBase64));
+            
+            // Service role or anon role from scheduled jobs
+            if (payload.role === 'service_role') {
+              authorized = true;
+              console.log('Update triggered via service_role');
+            } else if (payload.role === 'anon') {
+              // Anon key used by pg_cron scheduled jobs
+              authorized = true;
+              console.log('Update triggered via scheduled cron job');
+            } else if (payload.role === 'authenticated' && payload.sub) {
+              // Check if authenticated user is admin
+              authorized = await verifyAdminRole(supabaseAdmin, payload.sub);
+              if (authorized) console.log('Update triggered by admin user');
+            }
           }
+        } catch (e) {
+          console.error('JWT decode error:', e);
         }
       }
 
