@@ -121,7 +121,7 @@ serve(async (req) => {
       );
     }
 
-    // For update_recommendations: Require admin authentication
+    // For update_recommendations: Require admin or service_role authentication
     if (action === 'update_recommendations') {
       const authHeader = req.headers.get('Authorization');
       
@@ -132,12 +132,23 @@ serve(async (req) => {
         );
       }
 
-      // Validate the JWT token
+      const token = authHeader.replace('Bearer ', '');
+
+      // Allow service_role key (for cron jobs)
+      if (token === supabaseServiceKey) {
+        console.log('Scheduled update triggered via service_role key');
+        await updateRecommendationScores(supabaseAdmin);
+        return new Response(
+          JSON.stringify({ success: true, message: 'Recommendations updated (scheduled)' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Otherwise validate as admin user
       const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
         global: { headers: { Authorization: authHeader } }
       });
       
-      const token = authHeader.replace('Bearer ', '');
       const { data: claimsData, error: claimsError } = await supabaseAuth.auth.getClaims(token);
       
       if (claimsError || !claimsData?.claims) {
@@ -149,7 +160,6 @@ serve(async (req) => {
 
       const userId = claimsData.claims.sub as string;
 
-      // Verify admin role
       const isAdmin = await verifyAdminRole(supabaseAdmin, userId);
       if (!isAdmin) {
         return new Response(
