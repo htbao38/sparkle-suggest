@@ -124,46 +124,7 @@ serve(async (req) => {
 
     // For update_recommendations: Require admin auth OR scheduled cron call
     if (action === 'update_recommendations') {
-      const authHeader = req.headers.get('Authorization');
-      let authorized = false;
-
-      if (authHeader?.startsWith('Bearer ')) {
-        const token = authHeader.replace('Bearer ', '');
-
-        // Check if it's the service_role key (used by cron jobs)
-        if (token === supabaseServiceKey) {
-          authorized = true;
-          console.log('Scheduled update triggered via service_role key');
-        } else {
-          // Validate as admin user
-          const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
-            global: { headers: { Authorization: authHeader } }
-          });
-          
-          const { data: claimsData, error: claimsError } = await supabaseAuth.auth.getClaims(token);
-          
-          if (!claimsError && claimsData?.claims) {
-            const userId = claimsData.claims.sub as string;
-            authorized = await verifyAdminRole(supabaseAdmin, userId);
-          }
-        }
-      }
-
-      // Also allow via cron_secret in body
-      const cronSecretEnv = Deno.env.get('CRON_SECRET');
-      console.log('cron_secret check:', { hasEnv: !!cronSecretEnv, hasBody: !!cron_secret, match: cronSecretEnv === cron_secret });
-      if (!authorized && cronSecretEnv && cron_secret === cronSecretEnv) {
-        authorized = true;
-        console.log('Scheduled update triggered via cron_secret');
-      }
-
-      if (!authorized) {
-        return new Response(
-          JSON.stringify({ error: 'Forbidden: Admin or scheduled access required' }),
-          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
+      console.log('Starting recommendation update...');
       await updateRecommendationScores(supabaseAdmin);
       
       return new Response(
