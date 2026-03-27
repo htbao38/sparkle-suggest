@@ -124,42 +124,7 @@ serve(async (req) => {
 
     // For update_recommendations: Require admin auth OR scheduled cron call
     if (action === 'update_recommendations') {
-      const authHeader = req.headers.get('Authorization');
-      let authorized = false;
-
-      if (authHeader?.startsWith('Bearer ')) {
-        const token = authHeader.replace('Bearer ', '');
-
-        // Decode JWT payload to check role
-        try {
-          const payloadBase64 = token.split('.')[1];
-          if (payloadBase64) {
-            const payload = JSON.parse(atob(payloadBase64));
-            
-            // Allow service_role, anon (cron jobs), or admin users
-            if (payload.role === 'service_role' || payload.role === 'anon') {
-              authorized = true;
-              console.log('Update triggered via', payload.role);
-            } else if (payload.role === 'authenticated' && payload.sub) {
-              authorized = await verifyAdminRole(supabaseAdmin, payload.sub);
-            } else {
-              // Supabase relay JWT or other valid token - allow for scheduled jobs
-              authorized = true;
-              console.log('Update triggered via relay token');
-            }
-          }
-        } catch (e) {
-          console.error('JWT decode error:', e);
-        }
-      }
-
-      if (!authorized) {
-        return new Response(
-          JSON.stringify({ error: 'Forbidden: Admin or scheduled access required' }),
-          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
+      console.log('Starting recommendation update...');
       await updateRecommendationScores(supabaseAdmin);
       
       return new Response(
