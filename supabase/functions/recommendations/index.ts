@@ -151,6 +151,7 @@ serve(async (req) => {
 
       // Also allow via cron_secret in body
       const cronSecretEnv = Deno.env.get('CRON_SECRET');
+      console.log('cron_secret check:', { hasEnv: !!cronSecretEnv, hasBody: !!cron_secret, match: cronSecretEnv === cron_secret });
       if (!authorized && cronSecretEnv && cron_secret === cronSecretEnv) {
         authorized = true;
         console.log('Scheduled update triggered via cron_secret');
