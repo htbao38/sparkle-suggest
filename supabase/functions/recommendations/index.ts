@@ -77,7 +77,8 @@ serve(async (req) => {
     // Service role client for data access (used after auth validation)
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { action, user_id, product_id, limit = 8 } = await req.json();
+    const body = await req.json();
+    const { action, user_id, product_id, limit = 8, cron_secret } = body;
 
     // For get_recommendations: Allow authenticated users OR product-only recommendations
     if (action === 'get_recommendations') {
@@ -149,8 +150,9 @@ serve(async (req) => {
       }
 
       // Also allow via cron_secret in body
-      const cronSecret = Deno.env.get('CRON_SECRET');
-      if (!authorized && cronSecret && (await req.clone().json()).cron_secret === cronSecret) {
+      const cronSecretEnv = Deno.env.get('CRON_SECRET');
+      console.log('cron_secret check:', { hasEnv: !!cronSecretEnv, hasBody: !!cron_secret, match: cronSecretEnv === cron_secret });
+      if (!authorized && cronSecretEnv && cron_secret === cronSecretEnv) {
         authorized = true;
         console.log('Scheduled update triggered via cron_secret');
       }
