@@ -24,6 +24,7 @@ export default function Admin() {
   const [productDialogOpen, setProductDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [editingOrder, setEditingOrder] = useState<any>(null);
 
   // Fetch products
   const { data: products, isLoading: productsLoading } = useQuery({
