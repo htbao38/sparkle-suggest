@@ -487,7 +487,21 @@ export default function Admin() {
               </div>
             )}
           </TabsContent>
+
+          {/* Users Tab */}
+          <TabsContent value="users" className="space-y-6">
+            <UserManagement />
+          </TabsContent>
         </Tabs>
+
+        {/* Order Editor Dialog */}
+        {editingOrder && (
+          <OrderEditor
+            order={editingOrder}
+            open={!!editingOrder}
+            onOpenChange={(open) => { if (!open) setEditingOrder(null); }}
+          />
+        )}
       </div>
     </div>
   );
