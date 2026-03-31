@@ -246,9 +246,10 @@ export default function Admin() {
         </div>
 
         <Tabs defaultValue="products" className="space-y-6">
-          <TabsList className="grid w-full md:w-auto md:inline-grid grid-cols-2">
+          <TabsList className="grid w-full md:w-auto md:inline-grid grid-cols-3">
             <TabsTrigger value="products">Sản phẩm</TabsTrigger>
             <TabsTrigger value="orders">Đơn hàng</TabsTrigger>
+            <TabsTrigger value="users">Người dùng</TabsTrigger>
           </TabsList>
 
           {/* Products Tab */}
