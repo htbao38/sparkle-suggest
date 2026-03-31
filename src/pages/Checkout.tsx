@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { Layout } from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,7 +12,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { formatPrice } from '@/lib/constants';
 import { checkoutSchema } from '@/lib/validations';
 import { toast } from 'sonner';
-import { CreditCard, Truck, CheckCircle } from 'lucide-react';
+import { CreditCard, Truck, CheckCircle, MapPin } from 'lucide-react';
 
 export default function Checkout() {
   const { user } = useAuth();
