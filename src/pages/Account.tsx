@@ -251,6 +251,12 @@ export default function Account() {
               </Card>
             </TabsContent>
 
+
+            {/* Addresses Tab */}
+            <TabsContent value="addresses">
+              <AddressManager />
+            </TabsContent>
+
             {/* Orders Tab */}
             <TabsContent value="orders">
               <Card>
