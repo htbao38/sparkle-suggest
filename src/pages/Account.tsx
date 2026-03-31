@@ -161,10 +161,14 @@ export default function Account() {
           <h1 className="font-display text-2xl md:text-3xl font-bold mb-6">Tài khoản của tôi</h1>
           
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 gap-2 h-auto p-1">
+            <TabsList className="grid w-full grid-cols-3 md:grid-cols-6 gap-2 h-auto p-1">
               <TabsTrigger value="profile" className="flex items-center gap-2 py-3">
                 <User className="h-4 w-4" />
                 <span className="hidden md:inline">Thông tin</span>
+              </TabsTrigger>
+              <TabsTrigger value="addresses" className="flex items-center gap-2 py-3">
+                <MapPin className="h-4 w-4" />
+                <span className="hidden md:inline">Địa chỉ</span>
               </TabsTrigger>
               <TabsTrigger value="orders" className="flex items-center gap-2 py-3">
                 <Package className="h-4 w-4" />
