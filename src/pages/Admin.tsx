@@ -434,19 +434,24 @@ export default function Admin() {
                             {format(new Date(order.created_at), "dd/MM/yyyy HH:mm", { locale: vi })}
                           </p>
                         </div>
-                        <Select
-                          value={order.status}
-                          onValueChange={(v) => updateOrderStatusMutation.mutate({ orderId: order.id, status: v })}
-                        >
-                          <SelectTrigger className={`w-40 ${status?.color}`}>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {Object.entries(ORDER_STATUS).map(([k, v]) => (
-                              <SelectItem key={k} value={k}>{v.label}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <div className="flex items-center gap-2">
+                          <Button size="sm" variant="outline" onClick={() => setEditingOrder(order)}>
+                            <Pencil className="h-4 w-4 mr-1" /> Sửa
+                          </Button>
+                          <Select
+                            value={order.status}
+                            onValueChange={(v) => updateOrderStatusMutation.mutate({ orderId: order.id, status: v })}
+                          >
+                            <SelectTrigger className={`w-40 ${status?.color}`}>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {Object.entries(ORDER_STATUS).map(([k, v]) => (
+                                <SelectItem key={k} value={k}>{v.label}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
                       </div>
                       
                       <div className="grid md:grid-cols-2 gap-4 mb-4 text-sm">
