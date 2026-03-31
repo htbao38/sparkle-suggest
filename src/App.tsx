@@ -16,6 +16,7 @@ const ProductDetail = lazy(() => import("./pages/ProductDetail"));
 const Cart = lazy(() => import("./pages/Cart"));
 const Checkout = lazy(() => import("./pages/Checkout"));
 const Orders = lazy(() => import("./pages/Orders"));
+const OrderDetail = lazy(() => import("./pages/OrderDetail"));
 const Account = lazy(() => import("./pages/Account"));
 const Admin = lazy(() => import("./pages/Admin"));
 const NotFound = lazy(() => import("./pages/NotFound"));
@@ -41,6 +42,7 @@ const App = () => (
                 <Route path="/gio-hang" element={<Cart />} />
                 <Route path="/thanh-toan" element={<Checkout />} />
                 <Route path="/don-hang" element={<Orders />} />
+                <Route path="/don-hang/:id" element={<OrderDetail />} />
                 <Route path="/tai-khoan" element={<Account />} />
                 <Route path="/yeu-thich" element={<Account />} />
                 <Route path="/admin" element={<Admin />} />

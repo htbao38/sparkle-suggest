@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { Layout } from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,7 +12,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { formatPrice } from '@/lib/constants';
 import { checkoutSchema } from '@/lib/validations';
 import { toast } from 'sonner';
-import { CreditCard, Truck, CheckCircle } from 'lucide-react';
+import { CreditCard, Truck, CheckCircle, MapPin } from 'lucide-react';
 
 export default function Checkout() {
   const { user } = useAuth();
@@ -28,6 +29,30 @@ export default function Checkout() {
     address: '',
     notes: '',
   });
+
+  // Fetch saved addresses
+  const { data: addresses } = useQuery({
+    queryKey: ['addresses', user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('user_addresses')
+        .select('*')
+        .eq('user_id', user!.id)
+        .order('is_default', { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+  });
+
+  const selectAddress = (addr: any) => {
+    setFormData({
+      ...formData,
+      fullName: addr.full_name,
+      phone: addr.phone,
+      address: addr.address,
+    });
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -181,7 +206,32 @@ export default function Checkout() {
               <form onSubmit={handleSubmit} className="space-y-6">
                 {step === 1 && (
                   <>
-                    <h2 className="font-display text-2xl font-bold mb-6">Thông tin giao hàng</h2>
+                <h2 className="font-display text-2xl font-bold mb-6">Thông tin giao hàng</h2>
+                    
+                    {/* Saved addresses */}
+                    {addresses && addresses.length > 0 && (
+                      <div className="mb-6">
+                        <Label className="flex items-center gap-2 mb-3">
+                          <MapPin className="h-4 w-4" /> Chọn địa chỉ đã lưu
+                        </Label>
+                        <div className="grid gap-2">
+                          {addresses.map((addr: any) => (
+                            <button
+                              key={addr.id}
+                              type="button"
+                              onClick={() => selectAddress(addr)}
+                              className={`text-left border rounded-lg p-3 hover:bg-muted/50 transition-colors ${
+                                formData.fullName === addr.full_name && formData.phone === addr.phone && formData.address === addr.address
+                                  ? 'border-primary bg-primary/5' : ''
+                              }`}
+                            >
+                              <p className="font-medium text-sm">{addr.label} - {addr.full_name}</p>
+                              <p className="text-xs text-muted-foreground">{addr.phone} · {addr.address}</p>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                     <div className="grid md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="fullName">Họ và tên *</Label>

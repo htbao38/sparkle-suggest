@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { Navigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Pencil, Trash2, Package, DollarSign, Users, ShoppingCart, Search, Eye, EyeOff } from 'lucide-react';
+import { UserManagement } from '@/components/admin/UserManagement';
+import { OrderEditor } from '@/components/admin/OrderEditor';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -22,6 +24,7 @@ export default function Admin() {
   const [productDialogOpen, setProductDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [editingOrder, setEditingOrder] = useState<any>(null);
 
   // Fetch products
   const { data: products, isLoading: productsLoading } = useQuery({
@@ -243,9 +246,10 @@ export default function Admin() {
         </div>
 
         <Tabs defaultValue="products" className="space-y-6">
-          <TabsList className="grid w-full md:w-auto md:inline-grid grid-cols-2">
+          <TabsList className="grid w-full md:w-auto md:inline-grid grid-cols-3">
             <TabsTrigger value="products">Sản phẩm</TabsTrigger>
             <TabsTrigger value="orders">Đơn hàng</TabsTrigger>
+            <TabsTrigger value="users">Người dùng</TabsTrigger>
           </TabsList>
 
           {/* Products Tab */}
@@ -430,19 +434,24 @@ export default function Admin() {
                             {format(new Date(order.created_at), "dd/MM/yyyy HH:mm", { locale: vi })}
                           </p>
                         </div>
-                        <Select
-                          value={order.status}
-                          onValueChange={(v) => updateOrderStatusMutation.mutate({ orderId: order.id, status: v })}
-                        >
-                          <SelectTrigger className={`w-40 ${status?.color}`}>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {Object.entries(ORDER_STATUS).map(([k, v]) => (
-                              <SelectItem key={k} value={k}>{v.label}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <div className="flex items-center gap-2">
+                          <Button size="sm" variant="outline" onClick={() => setEditingOrder(order)}>
+                            <Pencil className="h-4 w-4 mr-1" /> Sửa
+                          </Button>
+                          <Select
+                            value={order.status}
+                            onValueChange={(v) => updateOrderStatusMutation.mutate({ orderId: order.id, status: v })}
+                          >
+                            <SelectTrigger className={`w-40 ${status?.color}`}>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {Object.entries(ORDER_STATUS).map(([k, v]) => (
+                                <SelectItem key={k} value={k}>{v.label}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
                       </div>
                       
                       <div className="grid md:grid-cols-2 gap-4 mb-4 text-sm">
@@ -478,7 +487,21 @@ export default function Admin() {
               </div>
             )}
           </TabsContent>
+
+          {/* Users Tab */}
+          <TabsContent value="users" className="space-y-6">
+            <UserManagement />
+          </TabsContent>
         </Tabs>
+
+        {/* Order Editor Dialog */}
+        {editingOrder && (
+          <OrderEditor
+            order={editingOrder}
+            open={!!editingOrder}
+            onOpenChange={(open) => { if (!open) setEditingOrder(null); }}
+          />
+        )}
       </div>
     </div>
   );

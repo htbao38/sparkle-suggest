@@ -63,7 +63,7 @@ export type Database = {
           price: number
           product_id: string | null
           product_image: string | null
-          product_name: string
+          product_name: string | null
           quantity: number
         }
         Insert: {
@@ -72,7 +72,7 @@ export type Database = {
           price: number
           product_id?: string | null
           product_image?: string | null
-          product_name: string
+          product_name?: string | null
           quantity: number
         }
         Update: {
@@ -81,7 +81,7 @@ export type Database = {
           price?: number
           product_id?: string | null
           product_image?: string | null
-          product_name?: string
+          product_name?: string | null
           quantity?: number
         }
         Relationships: [
@@ -303,6 +303,42 @@ export type Database = {
           id?: string
           phone?: string | null
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_addresses: {
+        Row: {
+          address: string
+          created_at: string | null
+          full_name: string
+          id: string
+          is_default: boolean | null
+          label: string | null
+          phone: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          address: string
+          created_at?: string | null
+          full_name: string
+          id?: string
+          is_default?: boolean | null
+          label?: string | null
+          phone: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          address?: string
+          created_at?: string | null
+          full_name?: string
+          id?: string
+          is_default?: boolean | null
+          label?: string | null
+          phone?: string
+          updated_at?: string | null
           user_id?: string
         }
         Relationships: []
