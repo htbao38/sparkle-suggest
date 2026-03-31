@@ -206,7 +206,32 @@ export default function Checkout() {
               <form onSubmit={handleSubmit} className="space-y-6">
                 {step === 1 && (
                   <>
-                    <h2 className="font-display text-2xl font-bold mb-6">Thông tin giao hàng</h2>
+                <h2 className="font-display text-2xl font-bold mb-6">Thông tin giao hàng</h2>
+                    
+                    {/* Saved addresses */}
+                    {addresses && addresses.length > 0 && (
+                      <div className="mb-6">
+                        <Label className="flex items-center gap-2 mb-3">
+                          <MapPin className="h-4 w-4" /> Chọn địa chỉ đã lưu
+                        </Label>
+                        <div className="grid gap-2">
+                          {addresses.map((addr: any) => (
+                            <button
+                              key={addr.id}
+                              type="button"
+                              onClick={() => selectAddress(addr)}
+                              className={`text-left border rounded-lg p-3 hover:bg-muted/50 transition-colors ${
+                                formData.fullName === addr.full_name && formData.phone === addr.phone && formData.address === addr.address
+                                  ? 'border-primary bg-primary/5' : ''
+                              }`}
+                            >
+                              <p className="font-medium text-sm">{addr.label} - {addr.full_name}</p>
+                              <p className="text-xs text-muted-foreground">{addr.phone} · {addr.address}</p>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                     <div className="grid md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="fullName">Họ và tên *</Label>
