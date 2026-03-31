@@ -30,6 +30,30 @@ export default function Checkout() {
     notes: '',
   });
 
+  // Fetch saved addresses
+  const { data: addresses } = useQuery({
+    queryKey: ['addresses', user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('user_addresses')
+        .select('*')
+        .eq('user_id', user!.id)
+        .order('is_default', { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+  });
+
+  const selectAddress = (addr: any) => {
+    setFormData({
+      ...formData,
+      fullName: addr.full_name,
+      phone: addr.phone,
+      address: addr.address,
+    });
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
     // Clear error when user types
