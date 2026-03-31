@@ -14,8 +14,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { OptimizedImage } from '@/components/ui/optimized-image';
+import { AddressManager } from '@/components/account/AddressManager';
 import { 
-  User, Package, Heart, Eye, Settings, LogOut, Trash2
+  User, Package, Heart, Eye, Settings, LogOut, Trash2, MapPin
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
