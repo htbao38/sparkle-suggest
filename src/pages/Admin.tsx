@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { Navigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Pencil, Trash2, Package, DollarSign, Users, ShoppingCart, Search, Eye, EyeOff } from 'lucide-react';
+import { UserManagement } from '@/components/admin/UserManagement';
+import { OrderEditor } from '@/components/admin/OrderEditor';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
