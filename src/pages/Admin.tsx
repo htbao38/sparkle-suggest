@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Navigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Pencil, Trash2, Package, DollarSign, Users, ShoppingCart, Search, Eye, EyeOff } from 'lucide-react';
+import { Plus, Pencil, Trash2, Package, DollarSign, Users, ShoppingCart, Search, Eye, EyeOff, Upload, X } from 'lucide-react';
 import { UserManagement } from '@/components/admin/UserManagement';
 import { OrderEditor } from '@/components/admin/OrderEditor';
 import { useAuth } from '@/hooks/useAuth';
@@ -25,6 +25,8 @@ export default function Admin() {
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [editingOrder, setEditingOrder] = useState<any>(null);
+  const [uploadingImages, setUploadingImages] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch products
   const { data: products, isLoading: productsLoading } = useQuery({
@@ -46,7 +48,7 @@ export default function Admin() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('orders')
-        .select('*, order_items(*)')
+        .select('*, order_items(*, product:products(name, images))')
         .order('created_at', { ascending: false });
       if (error) throw error;
       return data;
@@ -102,6 +104,34 @@ export default function Admin() {
       is_active: product.is_active ?? true,
     });
     setProductDialogOpen(true);
+  };
+
+  // Upload images to storage
+  const handleImageUpload = async (files: FileList) => {
+    if (!files.length) return;
+    setUploadingImages(true);
+    const urls: string[] = [];
+
+    for (const file of Array.from(files)) {
+      const ext = file.name.split('.').pop();
+      const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      const { error } = await supabase.storage
+        .from('product-images')
+        .upload(path, file);
+      if (error) {
+        toast.error(`Lỗi tải ảnh: ${file.name}`);
+        continue;
+      }
+      const { data: urlData } = supabase.storage.from('product-images').getPublicUrl(path);
+      urls.push(urlData.publicUrl);
+    }
+
+    if (urls.length) {
+      const current = productForm.images ? productForm.images.split(',').map(s => s.trim()).filter(Boolean) : [];
+      setProductForm({ ...productForm, images: [...current, ...urls].join(', ') });
+      toast.success(`Đã tải ${urls.length} ảnh`);
+    }
+    setUploadingImages(false);
   };
 
   // Save product mutation
@@ -324,8 +354,56 @@ export default function Admin() {
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <Label>Hình ảnh (URL, phân cách bằng dấu phẩy)</Label>
-                      <Input value={productForm.images} onChange={e => setProductForm({...productForm, images: e.target.value})} placeholder="https://example.com/image1.jpg, https://..." />
+                      <Label>Hình ảnh</Label>
+                      <div className="space-y-3">
+                        {/* Show current images */}
+                        {productForm.images && (
+                          <div className="flex flex-wrap gap-2">
+                            {productForm.images.split(',').map(s => s.trim()).filter(Boolean).map((url, i) => (
+                              <div key={i} className="relative group">
+                                <img src={url} alt="" className="w-16 h-16 object-cover rounded border" />
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const imgs = productForm.images.split(',').map(s => s.trim()).filter(Boolean);
+                                    imgs.splice(i, 1);
+                                    setProductForm({ ...productForm, images: imgs.join(', ') });
+                                  }}
+                                  className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                                >
+                                  <X className="h-3 w-3" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        <div className="flex gap-2">
+                          <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept="image/*"
+                            multiple
+                            className="hidden"
+                            onChange={e => e.target.files && handleImageUpload(e.target.files)}
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            disabled={uploadingImages}
+                            onClick={() => fileInputRef.current?.click()}
+                          >
+                            <Upload className="h-4 w-4 mr-2" />
+                            {uploadingImages ? 'Đang tải...' : 'Tải ảnh lên'}
+                          </Button>
+                        </div>
+                        <Input
+                          value={productForm.images}
+                          onChange={e => setProductForm({...productForm, images: e.target.value})}
+                          placeholder="Hoặc nhập URL, phân cách bằng dấu phẩy"
+                          className="text-xs"
+                        />
+                      </div>
                     </div>
                     <div className="space-y-2">
                       <Label>Mô tả</Label>
@@ -471,7 +549,7 @@ export default function Admin() {
                         <div className="space-y-2">
                           {order.order_items?.map((item: any) => (
                             <div key={item.id} className="flex justify-between text-sm">
-                              <span>{item.product_name} x{item.quantity}</span>
+                              <span>{item.product?.name || item.product_name || 'Sản phẩm'} x{item.quantity}</span>
                               <span className="font-medium">{formatPrice(Number(item.price) * item.quantity)}</span>
                             </div>
                           ))}
