@@ -549,7 +549,7 @@ export default function Admin() {
                         <div className="space-y-2">
                           {order.order_items?.map((item: any) => (
                             <div key={item.id} className="flex justify-between text-sm">
-                              <span>{item.product_name} x{item.quantity}</span>
+                              <span>{item.product?.name || item.product_name || 'Sản phẩm'} x{item.quantity}</span>
                               <span className="font-medium">{formatPrice(Number(item.price) * item.quantity)}</span>
                             </div>
                           ))}
