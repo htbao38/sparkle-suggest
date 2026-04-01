@@ -405,7 +405,6 @@ export default function Admin() {
                         />
                       </div>
                     </div>
-                    </div>
                     <div className="space-y-2">
                       <Label>Mô tả</Label>
                       <Textarea value={productForm.description} onChange={e => setProductForm({...productForm, description: e.target.value})} rows={3} />
