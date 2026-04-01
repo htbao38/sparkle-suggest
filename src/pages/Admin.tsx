@@ -106,6 +106,34 @@ export default function Admin() {
     setProductDialogOpen(true);
   };
 
+  // Upload images to storage
+  const handleImageUpload = async (files: FileList) => {
+    if (!files.length) return;
+    setUploadingImages(true);
+    const urls: string[] = [];
+
+    for (const file of Array.from(files)) {
+      const ext = file.name.split('.').pop();
+      const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      const { error } = await supabase.storage
+        .from('product-images')
+        .upload(path, file);
+      if (error) {
+        toast.error(`Lỗi tải ảnh: ${file.name}`);
+        continue;
+      }
+      const { data: urlData } = supabase.storage.from('product-images').getPublicUrl(path);
+      urls.push(urlData.publicUrl);
+    }
+
+    if (urls.length) {
+      const current = productForm.images ? productForm.images.split(',').map(s => s.trim()).filter(Boolean) : [];
+      setProductForm({ ...productForm, images: [...current, ...urls].join(', ') });
+      toast.success(`Đã tải ${urls.length} ảnh`);
+    }
+    setUploadingImages(false);
+  };
+
   // Save product mutation
   const saveProductMutation = useMutation({
     mutationFn: async () => {
