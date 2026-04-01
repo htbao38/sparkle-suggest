@@ -354,8 +354,57 @@ export default function Admin() {
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <Label>Hình ảnh (URL, phân cách bằng dấu phẩy)</Label>
-                      <Input value={productForm.images} onChange={e => setProductForm({...productForm, images: e.target.value})} placeholder="https://example.com/image1.jpg, https://..." />
+                      <Label>Hình ảnh</Label>
+                      <div className="space-y-3">
+                        {/* Show current images */}
+                        {productForm.images && (
+                          <div className="flex flex-wrap gap-2">
+                            {productForm.images.split(',').map(s => s.trim()).filter(Boolean).map((url, i) => (
+                              <div key={i} className="relative group">
+                                <img src={url} alt="" className="w-16 h-16 object-cover rounded border" />
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const imgs = productForm.images.split(',').map(s => s.trim()).filter(Boolean);
+                                    imgs.splice(i, 1);
+                                    setProductForm({ ...productForm, images: imgs.join(', ') });
+                                  }}
+                                  className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                                >
+                                  <X className="h-3 w-3" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        <div className="flex gap-2">
+                          <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept="image/*"
+                            multiple
+                            className="hidden"
+                            onChange={e => e.target.files && handleImageUpload(e.target.files)}
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            disabled={uploadingImages}
+                            onClick={() => fileInputRef.current?.click()}
+                          >
+                            <Upload className="h-4 w-4 mr-2" />
+                            {uploadingImages ? 'Đang tải...' : 'Tải ảnh lên'}
+                          </Button>
+                        </div>
+                        <Input
+                          value={productForm.images}
+                          onChange={e => setProductForm({...productForm, images: e.target.value})}
+                          placeholder="Hoặc nhập URL, phân cách bằng dấu phẩy"
+                          className="text-xs"
+                        />
+                      </div>
+                    </div>
                     </div>
                     <div className="space-y-2">
                       <Label>Mô tả</Label>
