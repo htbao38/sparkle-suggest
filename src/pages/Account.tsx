@@ -75,7 +75,7 @@ export default function Account() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('orders')
-        .select(`*, order_items (*)` )
+        .select(`*, order_items(*, product:products(name, images, slug))`)
         .eq('user_id', user!.id)
         .order('created_at', { ascending: false })
         .limit(10);
