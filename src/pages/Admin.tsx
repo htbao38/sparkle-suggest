@@ -25,6 +25,8 @@ export default function Admin() {
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [editingOrder, setEditingOrder] = useState<any>(null);
+  const [uploadingImages, setUploadingImages] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch products
   const { data: products, isLoading: productsLoading } = useQuery({
