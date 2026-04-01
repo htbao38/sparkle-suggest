@@ -272,7 +272,7 @@ export default function Account() {
                   ) : orders && orders.length > 0 ? (
                     <div className="space-y-4">
                       {orders.map((order) => (
-                        <div key={order.id} className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
+                        <Link key={order.id} to={`/don-hang/${order.id}`} className="block border rounded-lg p-4 hover:bg-muted/50 transition-colors">
                           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                             <div>
                               <p className="font-semibold">#{order.order_number}</p>
@@ -282,9 +282,7 @@ export default function Account() {
                             </div>
                             <div className="flex items-center gap-4">
                               <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                                order.status === 'delivered' ? 'bg-green-100 text-green-800' :
-                                order.status === 'cancelled' ? 'bg-red-100 text-red-800' :
-                                'bg-yellow-100 text-yellow-800'
+                                ORDER_STATUS[order.status as keyof typeof ORDER_STATUS]?.color || ''
                               }`}>
                                 {ORDER_STATUS[order.status as keyof typeof ORDER_STATUS]?.label || order.status}
                               </span>
@@ -293,12 +291,27 @@ export default function Account() {
                               </span>
                             </div>
                           </div>
-                          <div className="mt-3 pt-3 border-t">
-                            <p className="text-sm text-muted-foreground">
-                              {order.order_items?.length || 0} sản phẩm
-                            </p>
+                          {/* Show first 2 products */}
+                          <div className="mt-3 pt-3 border-t space-y-2">
+                            {order.order_items?.slice(0, 2).map((item: any) => {
+                              const name = item.product?.name || item.product_name || 'Sản phẩm';
+                              const image = item.product?.images?.[0] || item.product_image || '/placeholder.svg';
+                              return (
+                                <div key={item.id} className="flex items-center gap-3">
+                                  <img src={image} alt={name} className="w-12 h-12 object-cover rounded" />
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium truncate">{name}</p>
+                                    <p className="text-xs text-muted-foreground">x{item.quantity}</p>
+                                  </div>
+                                  <p className="text-sm font-medium">{formatPrice(Number(item.price) * item.quantity)}</p>
+                                </div>
+                              );
+                            })}
+                            {order.order_items && order.order_items.length > 2 && (
+                              <p className="text-xs text-muted-foreground">+ {order.order_items.length - 2} sản phẩm khác</p>
+                            )}
                           </div>
-                        </div>
+                        </Link>
                       ))}
                     </div>
                   ) : (
