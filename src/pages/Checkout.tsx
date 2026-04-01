@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Layout } from '@/components/layout/Layout';
@@ -6,13 +6,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useCart } from '@/hooks/useCart';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { formatPrice } from '@/lib/constants';
 import { checkoutSchema } from '@/lib/validations';
 import { toast } from 'sonner';
-import { CreditCard, Truck, CheckCircle, MapPin } from 'lucide-react';
+import { CreditCard, Truck, CheckCircle, MapPin, Plus } from 'lucide-react';
 
 export default function Checkout() {
   const { user } = useAuth();
@@ -21,7 +22,9 @@ export default function Checkout() {
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState(1);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  
+  const [addAddressOpen, setAddAddressOpen] = useState(false);
+  const [newAddress, setNewAddress] = useState({ label: 'Nhà', full_name: '', phone: '', address: '' });
+
   const [formData, setFormData] = useState({
     fullName: '',
     phone: '',
@@ -31,7 +34,7 @@ export default function Checkout() {
   });
 
   // Fetch saved addresses
-  const { data: addresses } = useQuery({
+  const { data: addresses, refetch: refetchAddresses } = useQuery({
     queryKey: ['addresses', user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -45,6 +48,50 @@ export default function Checkout() {
     enabled: !!user,
   });
 
+  // Fetch profile
+  const { data: profile } = useQuery({
+    queryKey: ['profile', user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', user!.id)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+  });
+
+  // Auto-fill from default address or profile on load
+  useEffect(() => {
+    if (!user) return;
+    
+    // Try default address first
+    const defaultAddr = addresses?.find((a: any) => a.is_default);
+    if (defaultAddr) {
+      setFormData(prev => ({
+        ...prev,
+        fullName: prev.fullName || defaultAddr.full_name,
+        phone: prev.phone || defaultAddr.phone,
+        address: prev.address || defaultAddr.address,
+        email: prev.email || user.email || '',
+      }));
+      return;
+    }
+
+    // Fall back to profile
+    if (profile) {
+      setFormData(prev => ({
+        ...prev,
+        fullName: prev.fullName || profile.full_name || '',
+        phone: prev.phone || profile.phone || '',
+        address: prev.address || profile.address || '',
+        email: prev.email || user.email || '',
+      }));
+    }
+  }, [addresses, profile, user]);
+
   const selectAddress = (addr: any) => {
     setFormData({
       ...formData,
@@ -54,9 +101,36 @@ export default function Checkout() {
     });
   };
 
+  const handleSaveNewAddress = async () => {
+    if (!user || !newAddress.full_name || !newAddress.phone || !newAddress.address) {
+      toast.error('Vui lòng điền đầy đủ thông tin');
+      return;
+    }
+
+    const { error } = await supabase.from('user_addresses').insert({
+      user_id: user.id,
+      label: newAddress.label,
+      full_name: newAddress.full_name,
+      phone: newAddress.phone,
+      address: newAddress.address,
+      is_default: !addresses?.length,
+    });
+
+    if (error) {
+      toast.error('Không thể lưu địa chỉ');
+      return;
+    }
+
+    toast.success('Đã lưu địa chỉ mới');
+    setAddAddressOpen(false);
+    setNewAddress({ label: 'Nhà', full_name: '', phone: '', address: '' });
+    refetchAddresses();
+    // Auto-select the new address
+    selectAddress({ full_name: newAddress.full_name, phone: newAddress.phone, address: newAddress.address });
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
-    // Clear error when user types
     if (errors[e.target.name]) {
       setErrors({ ...errors, [e.target.name]: '' });
     }
@@ -85,7 +159,6 @@ export default function Checkout() {
       return;
     }
 
-    // Validate form before submission
     if (!validateForm()) {
       toast.error('Vui lòng kiểm tra lại thông tin');
       return;
@@ -94,7 +167,6 @@ export default function Checkout() {
     setLoading(true);
 
     try {
-      // Create order with trimmed and validated data
       const { data: order, error: orderError } = await supabase
         .from('orders')
         .insert([{
@@ -105,14 +177,13 @@ export default function Checkout() {
           shipping_address: formData.address.trim(),
           total_amount: totalPrice,
           notes: formData.notes.trim() || null,
-          order_number: 'TEMP' + Date.now(), // Will be replaced by trigger
+          order_number: 'TEMP' + Date.now(),
         }])
         .select()
         .single();
 
       if (orderError) throw orderError;
 
-      // Create order items
       const orderItems = items.map(item => ({
         order_id: order.id,
         product_id: item.product_id,
@@ -137,9 +208,7 @@ export default function Checkout() {
         });
       }
 
-      // Clear cart
       await clearCart();
-
       toast.success('Đặt hàng thành công!');
       setStep(3);
     } catch (error) {
@@ -206,32 +275,38 @@ export default function Checkout() {
               <form onSubmit={handleSubmit} className="space-y-6">
                 {step === 1 && (
                   <>
-                <h2 className="font-display text-2xl font-bold mb-6">Thông tin giao hàng</h2>
+                    <h2 className="font-display text-2xl font-bold mb-6">Thông tin giao hàng</h2>
                     
                     {/* Saved addresses */}
-                    {addresses && addresses.length > 0 && (
-                      <div className="mb-6">
-                        <Label className="flex items-center gap-2 mb-3">
-                          <MapPin className="h-4 w-4" /> Chọn địa chỉ đã lưu
-                        </Label>
-                        <div className="grid gap-2">
-                          {addresses.map((addr: any) => (
-                            <button
-                              key={addr.id}
-                              type="button"
-                              onClick={() => selectAddress(addr)}
-                              className={`text-left border rounded-lg p-3 hover:bg-muted/50 transition-colors ${
-                                formData.fullName === addr.full_name && formData.phone === addr.phone && formData.address === addr.address
-                                  ? 'border-primary bg-primary/5' : ''
-                              }`}
-                            >
-                              <p className="font-medium text-sm">{addr.label} - {addr.full_name}</p>
-                              <p className="text-xs text-muted-foreground">{addr.phone} · {addr.address}</p>
-                            </button>
-                          ))}
-                        </div>
+                    <div className="mb-6">
+                      <Label className="flex items-center gap-2 mb-3">
+                        <MapPin className="h-4 w-4" /> Chọn địa chỉ giao hàng
+                      </Label>
+                      <div className="grid gap-2">
+                        {addresses?.map((addr: any) => (
+                          <button
+                            key={addr.id}
+                            type="button"
+                            onClick={() => selectAddress(addr)}
+                            className={`text-left border rounded-lg p-3 hover:bg-muted/50 transition-colors ${
+                              formData.fullName === addr.full_name && formData.phone === addr.phone && formData.address === addr.address
+                                ? 'border-primary bg-primary/5' : ''
+                            }`}
+                          >
+                            <p className="font-medium text-sm">{addr.label} - {addr.full_name}</p>
+                            <p className="text-xs text-muted-foreground">{addr.phone} · {addr.address}</p>
+                          </button>
+                        ))}
+                        <button
+                          type="button"
+                          onClick={() => setAddAddressOpen(true)}
+                          className="flex items-center gap-2 border border-dashed rounded-lg p-3 text-sm text-muted-foreground hover:bg-muted/50 transition-colors"
+                        >
+                          <Plus className="h-4 w-4" /> Thêm địa chỉ mới
+                        </button>
                       </div>
-                    )}
+                    </div>
+
                     <div className="grid md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="fullName">Họ và tên *</Label>
@@ -334,6 +409,37 @@ export default function Checkout() {
           </div>
         )}
       </div>
+
+      {/* Add Address Dialog */}
+      <Dialog open={addAddressOpen} onOpenChange={setAddAddressOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Thêm địa chỉ mới</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Nhãn</Label>
+              <Input value={newAddress.label} onChange={e => setNewAddress({ ...newAddress, label: e.target.value })} placeholder="Nhà, Công ty..." />
+            </div>
+            <div className="space-y-2">
+              <Label>Họ và tên *</Label>
+              <Input value={newAddress.full_name} onChange={e => setNewAddress({ ...newAddress, full_name: e.target.value })} required />
+            </div>
+            <div className="space-y-2">
+              <Label>Số điện thoại *</Label>
+              <Input value={newAddress.phone} onChange={e => setNewAddress({ ...newAddress, phone: e.target.value })} required />
+            </div>
+            <div className="space-y-2">
+              <Label>Địa chỉ *</Label>
+              <Textarea value={newAddress.address} onChange={e => setNewAddress({ ...newAddress, address: e.target.value })} required rows={3} />
+            </div>
+            <div className="flex gap-3">
+              <Button variant="outline" onClick={() => setAddAddressOpen(false)}>Hủy</Button>
+              <Button className="btn-gold flex-1" onClick={handleSaveNewAddress}>Lưu địa chỉ</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 }
