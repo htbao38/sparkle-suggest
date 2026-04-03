@@ -225,7 +225,7 @@ export default function Admin() {
           </Link>
           <div className="flex items-center gap-4">
             <span className="text-sm hidden md:block">Xin chào, Admin</span>
-            <Button variant="outline" size="sm" onClick={signOut} className="text-pearl border-pearl/30 hover:bg-pearl/10">
+            <Button variant="outline" size="sm" onClick={signOut} className="text-white border-white bg-white/20 hover:bg-white/30">
               Đăng xuất
             </Button>
           </div>
