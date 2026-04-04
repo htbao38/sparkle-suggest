@@ -147,18 +147,12 @@ export function Header() {
       {isMenuOpen && (
         <div className="lg:hidden border-t border-border bg-background">
           <div className="container py-4">
-            <form onSubmit={handleSearch} className="mb-4">
-              <div className="relative">
-                <Input
-                  type="search"
-                  placeholder="Tìm kiếm sản phẩm..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10"
-                />
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              </div>
-            </form>
+            <LiveSearchDropdown
+              className="mb-4"
+              inputClassName="w-full pl-10"
+              placeholder="Tìm kiếm sản phẩm..."
+              onNavigate={() => setIsMenuOpen(false)}
+            />
             <nav className="flex flex-col gap-2">
               {Object.entries(CATEGORIES).map(([key, value]) => (
                 <Link
