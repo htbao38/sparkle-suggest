@@ -1,7 +1,8 @@
 import { useState, useRef } from 'react';
 import { Navigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Pencil, Trash2, Package, DollarSign, Users, ShoppingCart, Search, Eye, EyeOff, Upload, X } from 'lucide-react';
+import { Plus, Pencil, Trash2, Package, DollarSign, Users, ShoppingCart, Search, Eye, EyeOff, Upload, X, BarChart3 } from 'lucide-react';
+import { RevenueChart } from '@/components/admin/RevenueChart';
 import { UserManagement } from '@/components/admin/UserManagement';
 import { OrderEditor } from '@/components/admin/OrderEditor';
 import { useAuth } from '@/hooks/useAuth';
