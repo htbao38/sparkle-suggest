@@ -276,12 +276,18 @@ export default function Admin() {
           </div>
         </div>
 
-        <Tabs defaultValue="products" className="space-y-6">
-          <TabsList className="grid w-full md:w-auto md:inline-grid grid-cols-3">
+        <Tabs defaultValue="statistics" className="space-y-6">
+          <TabsList className="grid w-full md:w-auto md:inline-grid grid-cols-4">
+            <TabsTrigger value="statistics">Thống kê</TabsTrigger>
             <TabsTrigger value="products">Sản phẩm</TabsTrigger>
             <TabsTrigger value="orders">Đơn hàng</TabsTrigger>
             <TabsTrigger value="users">Người dùng</TabsTrigger>
           </TabsList>
+
+          {/* Statistics Tab */}
+          <TabsContent value="statistics">
+            <RevenueChart orders={orders || []} products={products || []} />
+          </TabsContent>
 
           {/* Products Tab */}
           <TabsContent value="products" className="space-y-6">
