@@ -17,20 +17,10 @@ import { CATEGORIES } from '@/lib/constants';
 
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
   const { user, isAdmin, signOut } = useAuth();
   const { totalItems } = useCart();
   const { totalItems: wishlistCount } = useWishlist();
   const navigate = useNavigate();
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      navigate(`/san-pham?q=${encodeURIComponent(searchQuery)}`);
-      setSearchQuery('');
-      setIsMenuOpen(false);
-    }
-  };
 
   const handleSignOut = async () => {
     await signOut();
