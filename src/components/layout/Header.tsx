@@ -39,10 +39,6 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-md border-b border-border">
-      {/* Top bar */}
-      <div className="bg-primary text-primary-foreground text-center py-2 text-sm font-body">
-        <p>Miễn phí giao hàng cho đơn từ 2.000.000₫ | Hotline: 1800 54 54 57</p>
-      </div>
 
       {/* Main header */}
       <div className="container mx-auto px-4">

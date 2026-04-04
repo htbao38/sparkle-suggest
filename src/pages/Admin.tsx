@@ -1,7 +1,8 @@
 import { useState, useRef } from 'react';
 import { Navigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Pencil, Trash2, Package, DollarSign, Users, ShoppingCart, Search, Eye, EyeOff, Upload, X } from 'lucide-react';
+import { Plus, Pencil, Trash2, Package, DollarSign, Users, ShoppingCart, Search, Eye, EyeOff, Upload, X, BarChart3 } from 'lucide-react';
+import { RevenueChart } from '@/components/admin/RevenueChart';
 import { UserManagement } from '@/components/admin/UserManagement';
 import { OrderEditor } from '@/components/admin/OrderEditor';
 import { useAuth } from '@/hooks/useAuth';
@@ -275,12 +276,18 @@ export default function Admin() {
           </div>
         </div>
 
-        <Tabs defaultValue="products" className="space-y-6">
-          <TabsList className="grid w-full md:w-auto md:inline-grid grid-cols-3">
+        <Tabs defaultValue="statistics" className="space-y-6">
+          <TabsList className="grid w-full md:w-auto md:inline-grid grid-cols-4">
+            <TabsTrigger value="statistics">Thống kê</TabsTrigger>
             <TabsTrigger value="products">Sản phẩm</TabsTrigger>
             <TabsTrigger value="orders">Đơn hàng</TabsTrigger>
             <TabsTrigger value="users">Người dùng</TabsTrigger>
           </TabsList>
+
+          {/* Statistics Tab */}
+          <TabsContent value="statistics">
+            <RevenueChart orders={orders || []} products={products || []} />
+          </TabsContent>
 
           {/* Products Tab */}
           <TabsContent value="products" className="space-y-6">
