@@ -64,18 +64,10 @@ export function Header() {
           {/* Right actions */}
           <div className="flex items-center gap-2 md:gap-4">
             {/* Search */}
-            <form onSubmit={handleSearch} className="hidden md:flex items-center">
-              <div className="relative">
-                <Input
-                  type="search"
-                  placeholder="Tìm kiếm..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-48 lg:w-64 pl-10 bg-secondary/50 border-0 focus-visible:ring-primary"
-                />
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              </div>
-            </form>
+            <LiveSearchDropdown
+              className="hidden md:flex items-center"
+              inputClassName="w-48 lg:w-64 pl-10 bg-secondary/50 border-0 focus-visible:ring-primary"
+            />
 
             {/* Wishlist */}
             <Link to="/tai-khoan?tab=wishlist">
