@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, ShoppingBag, User, Menu, X, Heart } from 'lucide-react';
+import { ShoppingBag, User, Menu, X, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { LiveSearchDropdown } from '@/components/search/LiveSearchDropdown';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,20 +17,10 @@ import { CATEGORIES } from '@/lib/constants';
 
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
   const { user, isAdmin, signOut } = useAuth();
   const { totalItems } = useCart();
   const { totalItems: wishlistCount } = useWishlist();
   const navigate = useNavigate();
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      navigate(`/san-pham?q=${encodeURIComponent(searchQuery)}`);
-      setSearchQuery('');
-      setIsMenuOpen(false);
-    }
-  };
 
   const handleSignOut = async () => {
     await signOut();
@@ -74,18 +64,10 @@ export function Header() {
           {/* Right actions */}
           <div className="flex items-center gap-2 md:gap-4">
             {/* Search */}
-            <form onSubmit={handleSearch} className="hidden md:flex items-center">
-              <div className="relative">
-                <Input
-                  type="search"
-                  placeholder="Tìm kiếm..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-48 lg:w-64 pl-10 bg-secondary/50 border-0 focus-visible:ring-primary"
-                />
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              </div>
-            </form>
+            <LiveSearchDropdown
+              className="hidden md:flex items-center"
+              inputClassName="w-48 lg:w-64 pl-10 bg-secondary/50 border-0 focus-visible:ring-primary"
+            />
 
             {/* Wishlist */}
             <Link to="/tai-khoan?tab=wishlist">
@@ -165,18 +147,12 @@ export function Header() {
       {isMenuOpen && (
         <div className="lg:hidden border-t border-border bg-background">
           <div className="container py-4">
-            <form onSubmit={handleSearch} className="mb-4">
-              <div className="relative">
-                <Input
-                  type="search"
-                  placeholder="Tìm kiếm sản phẩm..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10"
-                />
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              </div>
-            </form>
+            <LiveSearchDropdown
+              className="mb-4"
+              inputClassName="w-full pl-10"
+              placeholder="Tìm kiếm sản phẩm..."
+              onNavigate={() => setIsMenuOpen(false)}
+            />
             <nav className="flex flex-col gap-2">
               {Object.entries(CATEGORIES).map(([key, value]) => (
                 <Link
