@@ -11,14 +11,44 @@ interface Message {
   content: string;
 }
 
+const STORAGE_KEY = 'luxe_chat_history';
+const DEFAULT_MESSAGES: Message[] = [
+  { role: 'assistant', content: 'Xin chào! Tôi là trợ lý tư vấn của LUXE JEWELRY. Bạn cần tư vấn gì về trang sức?' },
+];
+
 export function AIChatbot() {
   const [open, setOpen] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([
-    { role: 'assistant', content: 'Xin chào! Tôi là trợ lý tư vấn của LUXE JEWELRY. Bạn cần tư vấn gì về trang sức?' },
-  ]);
+  const [messages, setMessages] = useState<Message[]>(() => {
+    try {
+      const saved = sessionStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved) as Message[];
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return DEFAULT_MESSAGES;
+  });
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Persist messages to sessionStorage (cleared when tab/browser closes)
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
+    } catch {}
+  }, [messages]);
+
+  // Clear chat history on sign-in / sign-out
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+        sessionStorage.removeItem(STORAGE_KEY);
+        setMessages(DEFAULT_MESSAGES);
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, []);
 
   useEffect(() => {
     if (scrollRef.current) {
