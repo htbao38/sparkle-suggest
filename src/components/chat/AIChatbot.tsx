@@ -3,6 +3,8 @@ import { MessageCircle, X, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { supabase } from '@/integrations/supabase/client';
+import ReactMarkdown from 'react-markdown';
+import { Link } from 'react-router-dom';
 
 interface Message {
   role: 'user' | 'assistant';
