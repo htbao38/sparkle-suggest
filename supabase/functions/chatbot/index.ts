@@ -49,7 +49,7 @@ serve(async (req) => {
           return `- ${p.name} | ${cat} | ${mat} | ${price} | ${stock}${featured} | /san-pham/${p.slug}`;
         }).join("\n");
 
-        productContext = `\n\nDanh sách sản phẩm hiện có:\n${productList}\n\nKhi gợi ý sản phẩm, hãy đề cập tên và giá cụ thể. Gợi ý link sản phẩm dạng: /san-pham/[slug]`;
+        productContext = `\n\nDanh sách sản phẩm hiện có:\n${productList}\n\nKhi gợi ý sản phẩm, hãy đề cập tên và giá cụ thể. LUÔN tạo link dạng markdown clickable: [Tên sản phẩm](/san-pham/slug-day) thay vì viết link trần.`;
       }
     } catch (e) {
       console.error("Error fetching products for chatbot:", e);
