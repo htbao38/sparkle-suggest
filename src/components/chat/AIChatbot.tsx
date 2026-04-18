@@ -80,12 +80,38 @@ export function AIChatbot() {
           <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3">
             {messages.map((msg, i) => (
               <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[80%] px-3 py-2 rounded-lg text-sm whitespace-pre-wrap ${
+                <div className={`max-w-[85%] px-3 py-2 rounded-lg text-sm whitespace-pre-wrap break-words ${
                   msg.role === 'user'
                     ? 'bg-primary text-primary-foreground'
                     : 'bg-muted text-foreground'
                 }`}>
-                  {msg.content}
+                  {msg.role === 'assistant' ? (
+                    <div className="prose prose-sm max-w-none [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1 [&_strong]:font-semibold [&_a]:text-primary [&_a]:underline">
+                      <ReactMarkdown
+                        components={{
+                          a: ({ href, children }) => {
+                            const isInternal = href?.startsWith('/');
+                            if (isInternal) {
+                              return (
+                                <Link to={href!} onClick={() => setOpen(false)} className="text-primary underline">
+                                  {children}
+                                </Link>
+                              );
+                            }
+                            return (
+                              <a href={href} target="_blank" rel="noopener noreferrer" className="text-primary underline">
+                                {children}
+                              </a>
+                            );
+                          },
+                        }}
+                      >
+                        {msg.content}
+                      </ReactMarkdown>
+                    </div>
+                  ) : (
+                    msg.content
+                  )}
                 </div>
               </div>
             ))}
