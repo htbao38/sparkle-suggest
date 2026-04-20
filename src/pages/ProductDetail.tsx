@@ -256,6 +256,9 @@ export default function ProductDetail() {
           </div>
         </div>
 
+        {/* Reviews */}
+        <ProductReviews productId={product.id} />
+
         {/* Personalized Recommendations */}
         <div className="mt-20">
           <RecommendedProducts 
