@@ -13,6 +13,7 @@ import { useWishlist } from '@/hooks/useWishlist';
 import { useViewHistory } from '@/hooks/useViewHistory';
 import { formatPrice, MATERIALS, CATEGORIES } from '@/lib/constants';
 import { RecommendedProducts } from '@/components/products/RecommendedProducts';
+import { ProductReviews } from '@/components/products/ProductReviews';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
