@@ -13,6 +13,7 @@ import { useWishlist } from '@/hooks/useWishlist';
 import { useViewHistory } from '@/hooks/useViewHistory';
 import { formatPrice, MATERIALS, CATEGORIES } from '@/lib/constants';
 import { RecommendedProducts } from '@/components/products/RecommendedProducts';
+import { ProductReviews } from '@/components/products/ProductReviews';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -254,6 +255,9 @@ export default function ProductDetail() {
             </div>
           </div>
         </div>
+
+        {/* Reviews */}
+        <ProductReviews productId={product.id} />
 
         {/* Personalized Recommendations */}
         <div className="mt-20">
