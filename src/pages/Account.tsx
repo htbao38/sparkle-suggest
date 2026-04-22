@@ -1,6 +1,16 @@
 import { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Navigate, Link, useSearchParams } from 'react-router-dom';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { cn } from '@/lib/utils';
+import { Star, ChevronRight } from 'lucide-react';
 import { Layout } from '@/components/layout/Layout';
 import { useAuth } from '@/hooks/useAuth';
 import { useWishlist } from '@/hooks/useWishlist';
@@ -27,10 +37,14 @@ export default function Account() {
   const { items: wishlistItems, removeFromWishlist, loading: wishlistLoading } = useWishlist();
   const { items: viewHistory, isLoading: historyLoading, clearHistory } = useViewHistory(20);
   const [searchParams] = useSearchParams();
+  const queryClient = useQueryClient();
   const tabFromUrl = searchParams.get('tab');
   const [activeTab, setActiveTab] = useState(tabFromUrl || 'profile');
   const [isUpdating, setIsUpdating] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [reviewTarget, setReviewTarget] = useState<{ productId: string; productName: string } | null>(null);
+  const [rating, setRating] = useState(5);
+  const [comment, setComment] = useState('');
   const [profileForm, setProfileForm] = useState({
     full_name: '',
     phone: '',
@@ -79,11 +93,53 @@ export default function Account() {
         .eq('user_id', user!.id)
         .order('created_at', { ascending: false })
         .limit(10);
-      
       if (error) throw error;
       return data;
     },
     enabled: !!user,
+  });
+
+  // Reviews đã gửi để ẩn nút "Đánh giá"
+  const { data: myReviews } = useQuery({
+    queryKey: ['my-reviews', user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('product_reviews')
+        .select('product_id')
+        .eq('user_id', user!.id);
+      if (error) throw error;
+      return new Set((data || []).map((r) => r.product_id));
+    },
+    enabled: !!user,
+  });
+
+  const reviewMutation = useMutation({
+    mutationFn: async () => {
+      if (!user || !reviewTarget) throw new Error('invalid');
+      const { error } = await supabase.from('product_reviews').insert({
+        product_id: reviewTarget.productId,
+        user_id: user.id,
+        rating,
+        comment: comment.trim() || null,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success('Cảm ơn bạn đã đánh giá!');
+      const pid = reviewTarget?.productId;
+      setReviewTarget(null);
+      setRating(5);
+      setComment('');
+      queryClient.invalidateQueries({ queryKey: ['my-reviews'] });
+      if (pid) queryClient.invalidateQueries({ queryKey: ['product-reviews', pid] });
+    },
+    onError: (e: any) => {
+      const msg = String(e?.message || '');
+      if (msg.includes('duplicate')) toast.error('Bạn đã đánh giá sản phẩm này rồi');
+      else if (msg.includes('row-level') || msg.includes('policy'))
+        toast.error('Chỉ đơn hàng đã giao mới có thể đánh giá');
+      else toast.error('Không thể gửi đánh giá');
+    },
   });
 
   const validateProfileForm = () => {
@@ -271,8 +327,10 @@ export default function Account() {
                     </div>
                   ) : orders && orders.length > 0 ? (
                     <div className="space-y-4">
-                      {orders.map((order) => (
-                        <Link key={order.id} to={`/don-hang/${order.id}`} className="block border rounded-lg p-4 hover:bg-muted/50 transition-colors">
+                      {orders.map((order) => {
+                        const isDelivered = order.status === 'delivered';
+                        return (
+                        <div key={order.id} className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
                           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                             <div>
                               <p className="font-semibold">#{order.order_number}</p>
@@ -296,6 +354,8 @@ export default function Account() {
                             {order.order_items?.slice(0, 2).map((item: any) => {
                               const name = item.product?.name || item.product_name || 'Sản phẩm';
                               const image = item.product?.images?.[0] || item.product_image || '/placeholder.svg';
+                              const canReview = isDelivered && item.product_id && !myReviews?.has(item.product_id);
+                              const alreadyReviewed = isDelivered && item.product_id && myReviews?.has(item.product_id);
                               return (
                                 <div key={item.id} className="flex items-center gap-3">
                                   <img src={image} alt={name} className="w-12 h-12 object-cover rounded" />
@@ -303,7 +363,27 @@ export default function Account() {
                                     <p className="text-sm font-medium truncate">{name}</p>
                                     <p className="text-xs text-muted-foreground">x{item.quantity}</p>
                                   </div>
-                                  <p className="text-sm font-medium">{formatPrice(Number(item.price) * item.quantity)}</p>
+                                  <div className="flex flex-col items-end gap-1">
+                                    <p className="text-sm font-medium">{formatPrice(Number(item.price) * item.quantity)}</p>
+                                    {canReview && (
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => {
+                                          setReviewTarget({ productId: item.product_id, productName: name });
+                                          setRating(5);
+                                          setComment('');
+                                        }}
+                                      >
+                                        <Star className="h-3 w-3 mr-1" /> Đánh giá
+                                      </Button>
+                                    )}
+                                    {alreadyReviewed && (
+                                      <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                        <Star className="h-3 w-3 fill-primary text-primary" /> Đã đánh giá
+                                      </span>
+                                    )}
+                                  </div>
                                 </div>
                               );
                             })}
@@ -311,8 +391,14 @@ export default function Account() {
                               <p className="text-xs text-muted-foreground">+ {order.order_items.length - 2} sản phẩm khác</p>
                             )}
                           </div>
-                        </Link>
-                      ))}
+                          <div className="mt-3 pt-3 border-t flex justify-end">
+                            <Link to={`/don-hang/${order.id}`} className="text-primary text-sm flex items-center gap-1 hover:underline">
+                              Chi tiết <ChevronRight className="h-4 w-4" />
+                            </Link>
+                          </div>
+                        </div>
+                        );
+                      })}
                     </div>
                   ) : (
                     <div className="text-center py-8">
@@ -469,6 +555,63 @@ export default function Account() {
           </Tabs>
         </div>
       </div>
+
+      {/* Review dialog */}
+      <Dialog open={!!reviewTarget} onOpenChange={(o) => !o && setReviewTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="font-display">Đánh giá sản phẩm</DialogTitle>
+          </DialogHeader>
+          {reviewTarget && (
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground line-clamp-2">{reviewTarget.productName}</p>
+              <div>
+                <label className="text-sm font-medium block mb-2">Số sao</label>
+                <div className="flex items-center gap-1">
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <button
+                      key={n}
+                      type="button"
+                      onClick={() => setRating(n)}
+                      className="hover:scale-110 transition-transform"
+                      aria-label={`${n} sao`}
+                    >
+                      <Star
+                        className={cn(
+                          'h-7 w-7',
+                          n <= rating ? 'fill-primary text-primary' : 'text-muted-foreground'
+                        )}
+                      />
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="text-sm font-medium block mb-2">Bình luận (tùy chọn)</label>
+                <Textarea
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  placeholder="Chia sẻ cảm nhận của bạn về sản phẩm..."
+                  rows={4}
+                  maxLength={1000}
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setReviewTarget(null)}>
+              Huỷ
+            </Button>
+            <Button
+              className="btn-gold"
+              onClick={() => reviewMutation.mutate()}
+              disabled={reviewMutation.isPending}
+            >
+              {reviewMutation.isPending ? 'Đang gửi...' : 'Gửi đánh giá'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 }
