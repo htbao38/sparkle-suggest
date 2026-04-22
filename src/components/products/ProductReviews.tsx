@@ -100,7 +100,7 @@ export function ProductReviews({ productId }: Props) {
         .select('order_id, orders!inner(user_id, status)')
         .eq('product_id', productId)
         .eq('orders.user_id', user.id)
-        .neq('orders.status', 'cancelled')
+        .eq('orders.status', 'delivered')
         .limit(1);
       if (error) return false;
       return (data?.length ?? 0) > 0;
@@ -196,7 +196,7 @@ export function ProductReviews({ productId }: Props) {
         </div>
       ) : !hasPurchased ? (
         <div className="bg-secondary/30 rounded-lg p-6 text-center text-sm text-muted-foreground mb-8">
-          Bạn cần mua sản phẩm này trước khi có thể đánh giá.
+          Bạn cần mua và nhận sản phẩm này (đơn hàng đã giao) trước khi có thể đánh giá.
         </div>
       ) : myReview && !editingId ? (
         <div className="bg-secondary/30 rounded-lg p-6 mb-8">
