@@ -95,7 +95,7 @@ export default function OrderDetail() {
     },
   });
 
-
+  const updateMutation = useMutation({
     mutationFn: async () => {
       const { error } = await supabase.from('orders').update({
         customer_name: editForm.customer_name.trim(),
