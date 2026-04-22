@@ -100,7 +100,7 @@ export function ProductReviews({ productId }: Props) {
         .select('order_id, orders!inner(user_id, status)')
         .eq('product_id', productId)
         .eq('orders.user_id', user.id)
-        .neq('orders.status', 'cancelled')
+        .eq('orders.status', 'delivered')
         .limit(1);
       if (error) return false;
       return (data?.length ?? 0) > 0;
