@@ -327,8 +327,10 @@ export default function Account() {
                     </div>
                   ) : orders && orders.length > 0 ? (
                     <div className="space-y-4">
-                      {orders.map((order) => (
-                        <Link key={order.id} to={`/don-hang/${order.id}`} className="block border rounded-lg p-4 hover:bg-muted/50 transition-colors">
+                      {orders.map((order) => {
+                        const isDelivered = order.status === 'delivered';
+                        return (
+                        <div key={order.id} className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
                           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                             <div>
                               <p className="font-semibold">#{order.order_number}</p>
@@ -352,6 +354,8 @@ export default function Account() {
                             {order.order_items?.slice(0, 2).map((item: any) => {
                               const name = item.product?.name || item.product_name || 'Sản phẩm';
                               const image = item.product?.images?.[0] || item.product_image || '/placeholder.svg';
+                              const canReview = isDelivered && item.product_id && !myReviews?.has(item.product_id);
+                              const alreadyReviewed = isDelivered && item.product_id && myReviews?.has(item.product_id);
                               return (
                                 <div key={item.id} className="flex items-center gap-3">
                                   <img src={image} alt={name} className="w-12 h-12 object-cover rounded" />
@@ -359,7 +363,27 @@ export default function Account() {
                                     <p className="text-sm font-medium truncate">{name}</p>
                                     <p className="text-xs text-muted-foreground">x{item.quantity}</p>
                                   </div>
-                                  <p className="text-sm font-medium">{formatPrice(Number(item.price) * item.quantity)}</p>
+                                  <div className="flex flex-col items-end gap-1">
+                                    <p className="text-sm font-medium">{formatPrice(Number(item.price) * item.quantity)}</p>
+                                    {canReview && (
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => {
+                                          setReviewTarget({ productId: item.product_id, productName: name });
+                                          setRating(5);
+                                          setComment('');
+                                        }}
+                                      >
+                                        <Star className="h-3 w-3 mr-1" /> Đánh giá
+                                      </Button>
+                                    )}
+                                    {alreadyReviewed && (
+                                      <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                        <Star className="h-3 w-3 fill-primary text-primary" /> Đã đánh giá
+                                      </span>
+                                    )}
+                                  </div>
                                 </div>
                               );
                             })}
@@ -367,8 +391,14 @@ export default function Account() {
                               <p className="text-xs text-muted-foreground">+ {order.order_items.length - 2} sản phẩm khác</p>
                             )}
                           </div>
-                        </Link>
-                      ))}
+                          <div className="mt-3 pt-3 border-t flex justify-end">
+                            <Link to={`/don-hang/${order.id}`} className="text-primary text-sm flex items-center gap-1 hover:underline">
+                              Chi tiết <ChevronRight className="h-4 w-4" />
+                            </Link>
+                          </div>
+                        </div>
+                        );
+                      })}
                     </div>
                   ) : (
                     <div className="text-center py-8">
