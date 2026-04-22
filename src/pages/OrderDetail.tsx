@@ -256,6 +256,9 @@ export default function OrderDetail() {
                   const productName = item.product?.name || item.product_name || 'Sản phẩm';
                   const productImage = item.product?.images?.[0] || item.product_image || '/placeholder.svg';
                   const productSlug = item.product?.slug;
+                  const isDelivered = order.status === 'delivered';
+                  const canReview = isDelivered && item.product_id && !myReviews?.has(item.product_id);
+                  const alreadyReviewed = isDelivered && item.product_id && myReviews?.has(item.product_id);
                   return (
                     <div key={item.id} className="flex gap-4 items-center">
                       {productSlug ? (
@@ -272,6 +275,25 @@ export default function OrderDetail() {
                           <p className="font-medium">{productName}</p>
                         )}
                         <p className="text-sm text-muted-foreground">Số lượng: {item.quantity}</p>
+                        {canReview && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="mt-2"
+                            onClick={() => {
+                              setReviewTarget({ productId: item.product_id, productName });
+                              setRating(5);
+                              setComment('');
+                            }}
+                          >
+                            <Star className="h-4 w-4 mr-1" /> Đánh giá
+                          </Button>
+                        )}
+                        {alreadyReviewed && (
+                          <span className="mt-2 text-xs text-muted-foreground flex items-center gap-1">
+                            <Star className="h-3 w-3 fill-primary text-primary" /> Đã đánh giá
+                          </span>
+                        )}
                       </div>
                       <div className="text-right">
                         <p className="font-medium">{formatPrice(Number(item.price) * item.quantity)}</p>
