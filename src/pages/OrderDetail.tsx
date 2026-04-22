@@ -34,6 +34,9 @@ export default function OrderDetail() {
     shipping_address: '',
     notes: '',
   });
+  const [reviewTarget, setReviewTarget] = useState<{ productId: string; productName: string } | null>(null);
+  const [rating, setRating] = useState(5);
+  const [comment, setComment] = useState('');
 
   const { data: order, isLoading } = useQuery({
     queryKey: ['order-detail', id],
