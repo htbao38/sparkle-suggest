@@ -1,6 +1,16 @@
 import { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Navigate, Link, useSearchParams } from 'react-router-dom';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { cn } from '@/lib/utils';
+import { Star, ChevronRight } from 'lucide-react';
 import { Layout } from '@/components/layout/Layout';
 import { useAuth } from '@/hooks/useAuth';
 import { useWishlist } from '@/hooks/useWishlist';
@@ -27,10 +37,14 @@ export default function Account() {
   const { items: wishlistItems, removeFromWishlist, loading: wishlistLoading } = useWishlist();
   const { items: viewHistory, isLoading: historyLoading, clearHistory } = useViewHistory(20);
   const [searchParams] = useSearchParams();
+  const queryClient = useQueryClient();
   const tabFromUrl = searchParams.get('tab');
   const [activeTab, setActiveTab] = useState(tabFromUrl || 'profile');
   const [isUpdating, setIsUpdating] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [reviewTarget, setReviewTarget] = useState<{ productId: string; productName: string } | null>(null);
+  const [rating, setRating] = useState(5);
+  const [comment, setComment] = useState('');
   const [profileForm, setProfileForm] = useState({
     full_name: '',
     phone: '',
