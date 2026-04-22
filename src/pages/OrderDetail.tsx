@@ -321,6 +321,61 @@ export default function OrderDetail() {
           </div>
         )}
       </div>
+
+      <Dialog open={!!reviewTarget} onOpenChange={(o) => !o && setReviewTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="font-display">Đánh giá sản phẩm</DialogTitle>
+          </DialogHeader>
+          {reviewTarget && (
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground line-clamp-2">{reviewTarget.productName}</p>
+              <div>
+                <label className="text-sm font-medium block mb-2">Số sao</label>
+                <div className="flex items-center gap-1">
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <button
+                      key={n}
+                      type="button"
+                      onClick={() => setRating(n)}
+                      className="hover:scale-110 transition-transform"
+                      aria-label={`${n} sao`}
+                    >
+                      <Star
+                        className={cn(
+                          'h-7 w-7',
+                          n <= rating ? 'fill-primary text-primary' : 'text-muted-foreground'
+                        )}
+                      />
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="text-sm font-medium block mb-2">Bình luận (tùy chọn)</label>
+                <Textarea
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  placeholder="Chia sẻ cảm nhận của bạn về sản phẩm..."
+                  rows={4}
+                  maxLength={1000}
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setReviewTarget(null)}>
+              Huỷ
+            </Button>
+            <Button
+              onClick={() => reviewMutation.mutate()}
+              disabled={reviewMutation.isPending}
+            >
+              {reviewMutation.isPending ? 'Đang gửi...' : 'Gửi đánh giá'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 }
