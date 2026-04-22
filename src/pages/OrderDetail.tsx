@@ -52,7 +52,50 @@ export default function OrderDetail() {
     enabled: !!user && !!id,
   });
 
-  const updateMutation = useMutation({
+  const { data: myReviews } = useQuery({
+    queryKey: ['my-reviews', user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('product_reviews')
+        .select('product_id')
+        .eq('user_id', user!.id);
+      if (error) throw error;
+      return new Set((data || []).map((r) => r.product_id));
+    },
+    enabled: !!user,
+  });
+
+  const reviewMutation = useMutation({
+    mutationFn: async () => {
+      if (!user || !reviewTarget) throw new Error('invalid');
+      const { error } = await supabase.from('product_reviews').insert({
+        product_id: reviewTarget.productId,
+        user_id: user.id,
+        rating,
+        comment: comment.trim() || null,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success('Cảm ơn bạn đã đánh giá!');
+      setReviewTarget(null);
+      setRating(5);
+      setComment('');
+      queryClient.invalidateQueries({ queryKey: ['my-reviews'] });
+      if (reviewTarget) {
+        queryClient.invalidateQueries({ queryKey: ['product-reviews', reviewTarget.productId] });
+      }
+    },
+    onError: (e: any) => {
+      const msg = String(e?.message || '');
+      if (msg.includes('duplicate')) toast.error('Bạn đã đánh giá sản phẩm này rồi');
+      else if (msg.includes('row-level') || msg.includes('policy'))
+        toast.error('Chỉ đơn hàng đã giao mới có thể đánh giá');
+      else toast.error('Không thể gửi đánh giá');
+    },
+  });
+
+
     mutationFn: async () => {
       const { error } = await supabase.from('orders').update({
         customer_name: editForm.customer_name.trim(),
