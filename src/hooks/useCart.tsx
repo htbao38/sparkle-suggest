@@ -73,6 +73,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    // Track add to cart behavior
+    await supabase.from('user_behaviors').insert({
+      user_id: user.id,
+      product_id: productId,
+      behavior_type: 'add_to_cart',
+    });
+
     // Check if item already in cart
     const existing = items.find(item => item.product_id === productId);
     
