@@ -100,6 +100,13 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
     }
 
     try {
+      // Track wishlist behavior
+      await supabase.from('user_behaviors').insert({
+        user_id: user.id,
+        product_id: productId,
+        behavior_type: 'wishlist',
+      });
+      
       const { error } = await supabase
         .from('wishlist_items')
         .insert({
